@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const banners = bannerService.getAll();
+  const banners = await bannerService.getAll();
   return NextResponse.json(banners);
 }
 
@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest) {
   try {
     const { updates } = await request.json();
     if (updates && Array.isArray(updates)) {
-      bannerService.reorder(updates);
+      await bannerService.reorder(updates);
       return NextResponse.json({ success: true });
     }
     return NextResponse.json({ error: 'Invalid data' }, { status: 400 });

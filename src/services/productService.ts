@@ -1,93 +1,103 @@
-import fs from 'fs';
-import path from 'path';
+import { query } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
-const dataFilePath = path.join(process.cwd(), 'src/data/products.json');
-
-// Define types
 export interface Product {
   id: string;
   name: string;
-  category: string;
-  price: number;
-  badge: string | null;
   description: string;
+  price: number;
+  category: string;
+  volume: string;
   image_url: string;
-  visible: boolean;
   position: number;
-  scent_notes: {
-    top: string[];
-    mid: string[];
-    base: string[];
-  };
-  sizes: { size: string; stock: number }[];
-  created_at: string;
+  visible: boolean;
+  created_at?: string;
 }
 
 export const productService = {
-  getAll: (): Product[] => {
+  getAll: async (): Promise<Product[]> => {
     try {
-      const data = fs.readFileSync(dataFilePath, 'utf-8');
-      const products: Product[] = JSON.parse(data);
-      return products.sort((a, b) => a.position - b.position);
-    } catch (error) {
-      console.error('Error reading products data:', error);
+      const products = await query<Product[]>('SELECT * FROM products ORDER BY position ASC');
+      // Convert tinyint (0/1) to boolean for UI compatibility
+      return products.map(p => ({ ...p, visible: Boolean(p.visible) }));
+    } catch (e) {
+      console.error(e);
       return [];
     }
   },
 
-  getById: (id: string): Product | undefined => {
-    const products = productService.getAll();
-    return products.find(p => p.id === id);
+  getById: async (id: string): Promise<Product | null> => {
+    try {
+      const products = await query<Product[]>('SELECT * FROM products WHERE id = ?', [id]);
+      if (products.length === 0) return null;
+      return { ...products[0], visible: Boolean(products[0].visible) };
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   },
 
-  create: (productData: Omit<Product, 'id' | 'created_at' | 'position'>): Product => {
-    const products = productService.getAll();
-    const newProduct: Product = {
-      ...productData,
-      id: uuidv4(),
-      position: products.length, // Add to end
-      created_at: new Date().toISOString()
-    };
-    
-    products.push(newProduct);
-    fs.writeFileSync(dataFilePath, JSON.stringify(products, null, 2));
-    return newProduct;
+  create: async (data: Omit<Product, 'id' | 'position' | 'created_at'>): Promise<Product | null> => {
+    const id = uuidv4();
+    try {
+      const countRes = await query<any[]>('SELECT COUNT(*) as count FROM products');
+      const position = countRes[0].count;
+      
+      await query(
+        'INSERT INTO products (id, name, description, price, category, volume, image_url, position, visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, data.name, data.description, data.price, data.category, data.volume, data.image_url, position, data.visible ? 1 : 0]
+      );
+      return await productService.getById(id);
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   },
 
-  update: (id: string, productData: Partial<Product>): Product | null => {
-    const products = productService.getAll();
-    const index = products.findIndex(p => p.id === id);
+  update: async (id: string, data: Partial<Product>): Promise<Product | null> => {
+    const fields: string[] = [];
+    const values: any[] = [];
     
-    if (index === -1) return null;
-    
-    products[index] = { ...products[index], ...productData };
-    fs.writeFileSync(dataFilePath, JSON.stringify(products, null, 2));
-    return products[index];
-  },
-
-  delete: (id: string): boolean => {
-    const products = productService.getAll();
-    const filteredProducts = products.filter(p => p.id !== id);
-    
-    if (products.length === filteredProducts.length) return false;
-    
-    fs.writeFileSync(dataFilePath, JSON.stringify(filteredProducts, null, 2));
-    return true;
-  },
-  
-  reorder: (updates: { id: string, position: number }[]): boolean => {
-    const products = productService.getAll();
-    
-    const updatedProducts = products.map(product => {
-      const update = updates.find(u => u.id === product.id);
-      if (update) {
-        return { ...product, position: update.position };
+    for (const [key, value] of Object.entries(data)) {
+      if (key !== 'id' && key !== 'created_at') {
+        fields.push(`${key} = ?`);
+        // Handle boolean conversion for MySQL tinyint
+        values.push(typeof value === 'boolean' ? (value ? 1 : 0) : value);
       }
-      return product;
-    });
+    }
     
-    fs.writeFileSync(dataFilePath, JSON.stringify(updatedProducts, null, 2));
-    return true;
+    if (fields.length > 0) {
+      values.push(id);
+      try {
+        await query(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`, values);
+      } catch (e) {
+        console.error(e);
+        return null;
+      }
+    }
+    
+    return await productService.getById(id);
+  },
+
+  delete: async (id: string): Promise<boolean> => {
+    try {
+      const result = await query<any>('DELETE FROM products WHERE id = ?', [id]);
+      return result.affectedRows > 0;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  },
+
+  reorder: async (updates: { id: string, position: number }[]): Promise<boolean> => {
+    try {
+      for (const update of updates) {
+        await query('UPDATE products SET position = ? WHERE id = ?', [update.position, update.id]);
+      }
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   }
 };

@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const data = await request.json();
-    const updatedReel = reelService.update(id, data);
+    const updatedReel = await reelService.update(id, data);
     if (!updatedReel) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(updatedReel);
   } catch (error) {
@@ -31,7 +31,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const success = reelService.delete(id);
+  const success = await reelService.delete(id);
   if (!success) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ success: true });
 }

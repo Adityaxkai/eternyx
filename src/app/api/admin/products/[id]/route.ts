@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const product = productService.getById(id);
+  const product = await productService.getById(id);
   if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(product);
 }
@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const data = await request.json();
-    const updatedProduct = productService.update(id, data);
+    const updatedProduct = await productService.update(id, data);
     if (!updatedProduct) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(updatedProduct);
   } catch (error) {
@@ -45,7 +45,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const success = productService.delete(id);
+  const success = await productService.delete(id);
   if (!success) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ success: true });
 }

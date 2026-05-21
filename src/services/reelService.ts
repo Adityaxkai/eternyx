@@ -1,8 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import { query } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
-
-const dataFilePath = path.join(process.cwd(), 'src/data/reels.json');
 
 export interface Reel {
   id: string;
@@ -16,63 +13,87 @@ export interface Reel {
 }
 
 export const reelService = {
-  getAll: (): Reel[] => {
+  getAll: async (): Promise<Reel[]> => {
     try {
-      const data = fs.readFileSync(dataFilePath, 'utf-8');
-      const reels: Reel[] = JSON.parse(data);
-      return reels.sort((a, b) => a.position - b.position);
-    } catch (error) {
-      console.error('Error reading reels data:', error);
+      const reels = await query<Reel[]>('SELECT * FROM reels ORDER BY position ASC');
+      return reels.map(r => ({ ...r, active: Boolean(r.active) }));
+    } catch (e) {
+      console.error(e);
       return [];
     }
   },
 
-  create: (reelData: Omit<Reel, 'id' | 'position'>): Reel => {
-    const reels = reelService.getAll();
-    const newReel: Reel = {
-      ...reelData,
-      id: uuidv4(),
-      position: reels.length, // Add to end
-    };
-    
-    reels.push(newReel);
-    fs.writeFileSync(dataFilePath, JSON.stringify(reels, null, 2));
-    return newReel;
+  getById: async (id: string): Promise<Reel | null> => {
+    try {
+      const reels = await query<Reel[]>('SELECT * FROM reels WHERE id = ?', [id]);
+      if (reels.length === 0) return null;
+      return { ...reels[0], active: Boolean(reels[0].active) };
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   },
 
-  update: (id: string, reelData: Partial<Reel>): Reel | null => {
-    const reels = reelService.getAll();
-    const index = reels.findIndex(r => r.id === id);
-    
-    if (index === -1) return null;
-    
-    reels[index] = { ...reels[index], ...reelData };
-    fs.writeFileSync(dataFilePath, JSON.stringify(reels, null, 2));
-    return reels[index];
+  create: async (data: Omit<Reel, 'id' | 'position'>): Promise<Reel | null> => {
+    const id = uuidv4();
+    try {
+      const countRes = await query<any[]>('SELECT COUNT(*) as count FROM reels');
+      const position = countRes[0].count;
+      
+      await query(
+        'INSERT INTO reels (id, video_url, thumbnail_url, handle, likes, product_tag, position, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, data.video_url, data.thumbnail_url, data.handle, data.likes, data.product_tag, position, data.active ? 1 : 0]
+      );
+      return await reelService.getById(id);
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   },
 
-  delete: (id: string): boolean => {
-    const reels = reelService.getAll();
-    const filteredReels = reels.filter(r => r.id !== id);
+  update: async (id: string, data: Partial<Reel>): Promise<Reel | null> => {
+    const fields: string[] = [];
+    const values: any[] = [];
     
-    if (reels.length === filteredReels.length) return false;
-    
-    fs.writeFileSync(dataFilePath, JSON.stringify(filteredReels, null, 2));
-    return true;
-  },
-
-  reorder: (updates: { id: string, position: number }[]): boolean => {
-    const reels = reelService.getAll();
-    
-    const updatedReels = reels.map(reel => {
-      const update = updates.find(u => u.id === reel.id);
-      if (update) {
-        return { ...reel, position: update.position };
+    for (const [key, value] of Object.entries(data)) {
+      if (key !== 'id') {
+        fields.push(`${key} = ?`);
+        values.push(typeof value === 'boolean' ? (value ? 1 : 0) : value);
       }
-      return reel;
-    });
+    }
     
-    fs.writeFileSync(dataFilePath, JSON.stringify(updatedReels, null, 2));
-    return true;
+    if (fields.length > 0) {
+      values.push(id);
+      try {
+        await query(`UPDATE reels SET ${fields.join(', ')} WHERE id = ?`, values);
+      } catch (e) {
+        console.error(e);
+        return null;
+      }
+    }
+    
+    return await reelService.getById(id);
+  },
+
+  delete: async (id: string): Promise<boolean> => {
+    try {
+      const result = await query<any>('DELETE FROM reels WHERE id = ?', [id]);
+      return result.affectedRows > 0;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  },
+
+  reorder: async (updates: { id: string, position: number }[]): Promise<boolean> => {
+    try {
+      for (const update of updates) {
+        await query('UPDATE reels SET position = ? WHERE id = ?', [update.position, update.id]);
+      }
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   }
 };

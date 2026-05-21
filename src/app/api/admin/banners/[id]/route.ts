@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const data = await request.json();
-    const updatedBanner = bannerService.update(id, data);
+    const updatedBanner = await bannerService.update(id, data);
     if (!updatedBanner) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(updatedBanner);
   } catch (error) {

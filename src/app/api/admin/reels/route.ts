@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const reels = reelService.getAll();
+  const reels = await reelService.getAll();
   return NextResponse.json(reels);
 }
 
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json();
-    const newReel = reelService.create(data);
+    const newReel = await reelService.create(data);
     return NextResponse.json(newReel, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create reel' }, { status: 400 });
@@ -43,7 +43,7 @@ export async function PUT(request: NextRequest) {
   try {
     const { updates } = await request.json();
     if (updates && Array.isArray(updates)) {
-      reelService.reorder(updates);
+      await reelService.reorder(updates);
       return NextResponse.json({ success: true });
     }
     return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
