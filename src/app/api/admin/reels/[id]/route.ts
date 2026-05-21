@@ -3,7 +3,8 @@ import { reelService } from '@/services/reelService';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const res = NextResponse.json({ ok: true });
   const session = await getIronSession<SessionData>(request, res, sessionOptions);
   
@@ -13,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   try {
     const data = await request.json();
-    const updatedReel = reelService.update(params.id, data);
+    const updatedReel = reelService.update(id, data);
     if (!updatedReel) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(updatedReel);
   } catch (error) {
@@ -21,7 +22,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const res = NextResponse.json({ ok: true });
   const session = await getIronSession<SessionData>(request, res, sessionOptions);
   
@@ -29,7 +31,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const success = reelService.delete(params.id);
+  const success = reelService.delete(id);
   if (!success) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ success: true });
 }

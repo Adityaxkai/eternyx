@@ -3,7 +3,8 @@ import { bannerService } from '@/services/bannerService';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const res = NextResponse.json({ ok: true });
   const session = await getIronSession<SessionData>(request, res, sessionOptions);
   
@@ -13,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   try {
     const data = await request.json();
-    const updatedBanner = bannerService.update(params.id, data);
+    const updatedBanner = bannerService.update(id, data);
     if (!updatedBanner) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(updatedBanner);
   } catch (error) {
