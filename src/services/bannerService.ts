@@ -7,6 +7,7 @@ export interface Banner {
   mobile_image_url: string;
   position: number;
   active: boolean;
+  is_mobile_first?: boolean;
 }
 
 export const bannerService = {

@@ -11,6 +11,7 @@ export interface Product {
   image_url: string;
   position: number;
   visible: boolean;
+  badge?: string;
   created_at?: string;
 }
 
