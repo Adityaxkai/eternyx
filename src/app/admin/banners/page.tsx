@@ -128,7 +128,7 @@ export default function BannersPage() {
                       </div>
                       
                       <div className="banner-details">
-                        <div className="banner-alt">{banner.alt_text}</div>
+                        <div className="banner-alt">{`Banner ${index + 1}`}</div>
                         <div className="banner-paths">
                           <span><strong>Desktop:</strong> {banner.image_url}</span>
                           <span><strong>Mobile:</strong> {banner.mobile_image_url || 'Same as desktop'}</span>
