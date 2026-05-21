@@ -123,7 +123,7 @@ export default function BannersPage() {
                       <div className="drag-handle" {...provided.dragHandleProps}>⋮⋮</div>
                       
                       <div className="banner-preview">
-                        <img src={banner.image_url} alt={banner.alt_text} />
+                        <img src={banner.image_url} alt={`Banner ${index + 1}`} />
                         <div className="banner-number">{index + 1}</div>
                       </div>
                       
