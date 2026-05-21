@@ -1,0 +1,50 @@
+[
+  {
+    "id": "1",
+    "platform": "instagram",
+    "original_url": "https://instagram.com/reel1",
+    "embed_url": "",
+    "handle": "@aria.luxe",
+    "likes": "84K",
+    "product_id": "1",
+    "thumbnail_url": "/images/reel-1.png",
+    "position": 0,
+    "active": true
+  },
+  {
+    "id": "2",
+    "platform": "instagram",
+    "original_url": "https://instagram.com/reel2",
+    "embed_url": "",
+    "handle": "@noir.collective",
+    "likes": "31K",
+    "product_id": "2",
+    "thumbnail_url": "/images/reel-2.png",
+    "position": 1,
+    "active": true
+  },
+  {
+    "id": "3",
+    "platform": "instagram",
+    "original_url": "https://instagram.com/reel3",
+    "embed_url": "",
+    "handle": "@scent.journal",
+    "likes": "112K",
+    "product_id": "1",
+    "thumbnail_url": "/images/reel-3.png",
+    "position": 2,
+    "active": true
+  },
+  {
+    "id": "4",
+    "platform": "instagram",
+    "original_url": "https://instagram.com/reel4",
+    "embed_url": "",
+    "handle": "@the.fragrance.guy",
+    "likes": "45K",
+    "product_id": "2",
+    "thumbnail_url": "/images/reel-4.png",
+    "position": 3,
+    "active": true
+  }
+]

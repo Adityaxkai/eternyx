@@ -1,0 +1,29 @@
+{
+  "brand": {
+    "name": "ETERNYX",
+    "tagline": "Defining Silence",
+    "logo_url": "",
+    "accent_color": "#d4af37",
+    "social": {
+      "instagram": "https://instagram.com",
+      "pinterest": "https://pinterest.com",
+      "tiktok": "https://tiktok.com"
+    }
+  },
+  "seo": {
+    "meta_title": "ETERNYX | Luxury Fragrance",
+    "meta_description": "A symphony of scents crafted for the discerning. Experience luxury in its purest, most silent form.",
+    "og_image": "/images/wide-abstract.png"
+  },
+  "notifications": {
+    "email_on_order": true,
+    "email_on_review": true,
+    "low_stock_threshold": 5
+  },
+  "announcement": {
+    "enabled": false,
+    "text": "Free worldwide shipping on orders over $250.",
+    "bg_color": "#d4af37",
+    "text_color": "#000000"
+  }
+}

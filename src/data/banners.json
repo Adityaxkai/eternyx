@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "image_url": "/images/wide-lineup.png",
+    "mobile_image_url": "/images/wide-lineup.png",
+    "alt_text": "The Eternyx Collection Lineup",
+    "position": 0,
+    "active": true,
+    "is_mobile_first": false
+  },
+  {
+    "id": "2",
+    "image_url": "/images/wide-close.png",
+    "mobile_image_url": "/images/wide-close.png",
+    "alt_text": "Noir Absolu Close Up",
+    "position": 1,
+    "active": true,
+    "is_mobile_first": false
+  },
+  {
+    "id": "3",
+    "image_url": "/images/wide-abstract.png",
+    "mobile_image_url": "/images/wide-abstract.png",
+    "alt_text": "Silken Oud Abstract Representation",
+    "position": 2,
+    "active": true,
+    "is_mobile_first": true
+  }
+]
