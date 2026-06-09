@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import gsap from 'gsap';
+import { useCart } from '@/context/CartContext';
 
 export interface Product {
   name: string;
@@ -89,6 +90,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
   const detailsColRef = useRef<HTMLDivElement>(null);
   const imageColRef = useRef<HTMLDivElement>(null);
   const [selectedSize, setSelectedSize] = useState('100 ml');
+  const { addToCart, setIsCartOpen } = useCart();
 
   const details = product ? (productDetails[product.name] ?? productDetails['Silken Oud']) : null;
 
@@ -116,6 +118,12 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
 
   useEffect(() => {
     if (product && panelRef.current && overlayRef.current) {
+      // Set default size for the product
+      const currentDetails = productDetails[product.name] ?? productDetails['Silken Oud'];
+      if (currentDetails?.sizes?.[0]) {
+        setSelectedSize(currentDetails.sizes[0]);
+      }
+
       // Stop background scrolling
       const lenis = (window as any).lenis;
       lenis?.stop();
@@ -238,7 +246,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
 
           {/* CTAs */}
           <div className="pm-actions">
-            <button className="pm-btn-cart">
+            <button className="pm-btn-cart" onClick={(e) => addToCart(product, selectedSize, 1, { x: e.clientX, y: e.clientY })}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
                 <line x1="3" y1="6" x2="21" y2="6"/>
@@ -246,7 +254,11 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
               </svg>
               Add to Cart
             </button>
-            <button className="pm-btn-buy">Buy Now</button>
+            <button className="pm-btn-buy" onClick={(e) => {
+              addToCart(product, selectedSize, 1, { x: e.clientX, y: e.clientY });
+              setIsCartOpen(true);
+              handleClose();
+            }}>Buy Now</button>
           </div>
 
           {/* Divider */}

@@ -6,6 +6,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import { Draggable } from 'gsap/dist/Draggable';
 import ProductModal, { Product } from '@/components/ProductModal';
+import { useCart } from '@/context/CartContext';
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, Draggable);
@@ -14,32 +15,108 @@ if (typeof window !== "undefined") {
 export default function Home() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const { addToCart } = useCart();
   const duoRef = useRef<HTMLDivElement>(null);
   const alchemyRef = useRef<HTMLDivElement>(null);
   const scrollTrackRef = useRef<HTMLDivElement>(null);
   const alchemyHeaderRef = useRef<HTMLDivElement>(null);
   
   const heroContentRef = useRef<HTMLDivElement>(null);
-  
-  const banners = [
-    "/images/wide-lineup.png",
-    "/images/wide-close.png",
-    "/images/wide-abstract.png"
+
+  const LOCAL_BANNERS = [
+    { image_url: "/images/wide-lineup.png", mobile_image_url: "/images/wide-lineup.png" },
+    { image_url: "/images/wide-close.png", mobile_image_url: "/images/wide-close.png" },
+    { image_url: "/images/wide-abstract.png", mobile_image_url: "/images/wide-abstract.png" }
   ];
 
+  const LOCAL_PRODUCTS = [
+    { name: "Silken Oud", category: "Luxury Blend", price: "$220", image: "/images/product-silken-oud.png", badge: "Bestseller" },
+    { name: "Noir Absolu", category: "Eau de Parfum", price: "$195", image: "/images/product-noir-absolu.png", badge: null },
+    { name: "Lumière Rose", category: "Signature Scent", price: "$240", image: "/images/product-lumiere-rose.png", badge: "New" },
+    { name: "Vetiver Ghost", category: "Limited Edition", price: "$280", image: "/images/product-vetiver-ghost.png", badge: "Ltd. Edition" },
+    { name: "Eternyx Noir", category: "Eau de Parfum", price: "$180", image: "/images/product-noir-absolu.png", badge: null },
+  ];
+
+  const LOCAL_REELS = [
+    { handle: "@aria.luxe", likes: "84K", product: "Silken Oud", image: "/images/reel-1.png" },
+    { handle: "@noir.collective", likes: "31K", product: "Noir Absolu", image: "/images/reel-2.png" },
+    { handle: "@scentedmornings", likes: "62K", product: "Lumière Rose", image: "/images/reel-3.png" },
+    { handle: "@maison.de.parfum", likes: "47K", product: "Vetiver Ghost", image: "/images/reel-4.png" },
+    { handle: "@eternyx.official", likes: "120K", product: "Eternyx Noir", image: "/images/reel-5.png" },
+  ];
+
+  const [banners, setBanners] = useState<{ image_url: string; mobile_image_url: string }[]>(LOCAL_BANNERS);
+  const [alchemyProducts, setAlchemyProducts] = useState<Product[]>(LOCAL_PRODUCTS);
+  const [reels, setReels] = useState<{ handle: string; likes: string; product: string; image: string }[]>(LOCAL_REELS);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Responsive device check
   useEffect(() => {
-    // On mobile viewports, show the last (abstract gold) slide first
-    if (typeof window !== "undefined" && window.innerWidth <= 768) {
-      setCurrentBanner(2);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Parallel asynchronous fetching on mount
+  useEffect(() => {
+    fetch('/api/banners')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setBanners(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch banners:', err));
+
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((p: any) => ({
+            name: p.name,
+            category: p.category,
+            price: typeof p.price === 'number' ? `$${p.price}` : p.price,
+            image: p.image_url || '/images/hero.png',
+            badge: p.badge || null
+          }));
+          setAlchemyProducts(mapped);
+        }
+      })
+      .catch(err => console.error('Failed to fetch products:', err));
+
+    fetch('/api/reels')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((r: any) => ({
+            handle: r.handle,
+            likes: r.likes,
+            product: r.product_tag,
+            image: r.thumbnail_url || '/images/reel-1.png'
+          }));
+          setReels(mapped);
+        }
+      })
+      .catch(err => console.error('Failed to fetch reels:', err));
+  }, []);
+
+  // GSAP animation bindings
+  useEffect(() => {
+    // Show last slide first on mobile viewports
+    if (typeof window !== "undefined" && window.innerWidth <= 768 && banners.length > 0) {
+      setCurrentBanner(banners.length - 1);
     }
 
     // Banner Timer
     const timer = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % banners.length);
+      if (banners.length > 0) {
+        setCurrentBanner((prev) => (prev + 1) % banners.length);
+      }
     }, 5000);
 
-    // Scroll Direction Global Logic
-    let lastScrollY = window.scrollY;
     const ctx = gsap.context(() => {
       // Entrance Animation for Hero Text
       gsap.fromTo(heroContentRef.current, 
@@ -133,7 +210,6 @@ export default function Home() {
               overwrite: "auto"
             });
           }
-          // Vertical scroll: do nothing, let the page scroll naturally
         };
 
         track.addEventListener('wheel', onWheel, { passive: false });
@@ -180,21 +256,19 @@ export default function Home() {
             x: 0,
             opacity: 1,
             duration: 0.8,
-            ease: "expo.in", // Dramatically slow start, fast end
+            ease: "expo.in",
             overwrite: "auto"
           });
         };
 
         const onLeave = () => {
-          // If we are scrolling down, keep it visible
-          // Otherwise, hide it
           if (window.scrollY < 100) {
             gsap.to(duo, {
               xPercent: 100,
               x: -100,
               opacity: 0,
               duration: 0.8,
-              ease: "power2.out", // Ease-out on exit as requested
+              ease: "power2.out",
               overwrite: "auto"
             });
           }
@@ -209,30 +283,9 @@ export default function Home() {
       clearInterval(timer);
       ctx.revert();
     };
-  }, [banners.length]);
+  }, [banners, alchemyProducts, reels]);
 
-  const perfumes = [
-    { name: "Eternyx Noir", category: "Eau de Parfum", price: "$180", image: "/images/hero.png" },
-    { name: "Silken Oud", category: "Luxury Blend", price: "$220", image: "/images/collection-1.png" },
-    { name: "Celestial Amber", category: "Signature Scent", price: "$195", image: "/images/hero.png" },
-    { name: "Midnight Rose", category: "Limited Edition", price: "$240", image: "/images/collection-1.png" },
-  ];
-
-  const alchemyProducts = [
-    { name: "Silken Oud", category: "Luxury Blend", price: "$220", image: "/images/product-silken-oud.png", badge: "Bestseller" },
-    { name: "Noir Absolu", category: "Eau de Parfum", price: "$195", image: "/images/product-noir-absolu.png", badge: null },
-    { name: "Lumière Rose", category: "Signature Scent", price: "$240", image: "/images/product-lumiere-rose.png", badge: "New" },
-    { name: "Vetiver Ghost", category: "Limited Edition", price: "$280", image: "/images/product-vetiver-ghost.png", badge: "Ltd. Edition" },
-    { name: "Eternyx Noir", category: "Eau de Parfum", price: "$180", image: "/images/product-noir-absolu.png", badge: null },
-  ];
-
-  const reels = [
-    { handle: "@aria.luxe", likes: "84K", product: "Silken Oud", image: "/images/reel-1.png" },
-    { handle: "@noir.collective", likes: "31K", product: "Noir Absolu", image: "/images/reel-2.png" },
-    { handle: "@scentedmornings", likes: "62K", product: "Lumière Rose", image: "/images/reel-3.png" },
-    { handle: "@maison.de.parfum", likes: "47K", product: "Vetiver Ghost", image: "/images/reel-4.png" },
-    { handle: "@eternyx.official", likes: "120K", product: "Eternyx Noir", image: "/images/reel-5.png" },
-  ];
+  const spotlightProducts = alchemyProducts.slice(0, 2);
 
   return (
     <>
@@ -240,7 +293,7 @@ export default function Home() {
         {/* Hero Section */}
         <section className="hero">
           <div className="hero-image-carousel">
-            {banners.map((src, index) => (
+            {banners.map((banner, index) => (
               <div 
                 key={index} 
                 className={`hero-image ${index === currentBanner ? 'active' : ''} hero-image-${index}`}
@@ -253,7 +306,7 @@ export default function Home() {
                 }}
               >
                 <Image 
-                  src={src} 
+                  src={isMobile && banner.mobile_image_url ? banner.mobile_image_url : banner.image_url} 
                   alt={`Eternyx Banner ${index + 1}`} 
                   fill
                   style={{ objectFit: 'cover' }}
@@ -320,7 +373,13 @@ export default function Home() {
                   <p className="product-card-price">{product.price}</p>
                   <div className="product-card-actions">
                     <button className="btn-shop-now">Shop Now</button>
-                    <button className="btn-add-cart">
+                    <button 
+                      className="btn-add-cart"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(product, '100 ml', 1, { x: e.clientX, y: e.clientY });
+                      }}
+                    >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
                         <line x1="3" y1="6" x2="21" y2="6"/>
@@ -419,18 +478,19 @@ export default function Home() {
       {/* Product Detail Modal */}
       <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       <div className="hero-product-duo" ref={duoRef}>
-        <div className="product-spotlight" style={{ cursor: 'pointer' }} onClick={() => setSelectedProduct({ name: 'Silken Oud', category: 'Luxury Blend', price: '$220', image: '/images/product-silken-oud.png', badge: 'Bestseller' })}>
-          <img src="/images/product-silken-oud.png" alt="Silken Oud" />
-          <h3>Silken Oud</h3>
-          <p className="price">$220</p>
-          <button className="shop-now-mini">Shop Now</button>
-        </div>
-        <div className="product-spotlight" style={{ cursor: 'pointer' }} onClick={() => setSelectedProduct({ name: 'Eternyx Noir', category: 'Eau de Parfum', price: '$180', image: '/images/product-noir-absolu.png', badge: null })}>
-          <img src="/images/product-noir-absolu.png" alt="Eternyx Noir" />
-          <h3>Eternyx Noir</h3>
-          <p className="price">$180</p>
-          <button className="shop-now-mini">Shop Now</button>
-        </div>
+        {spotlightProducts.map((product, index) => (
+          <div 
+            key={index}
+            className="product-spotlight" 
+            style={{ cursor: 'pointer' }} 
+            onClick={() => setSelectedProduct(product)}
+          >
+            <img src={product.image} alt={product.name} />
+            <h3>{product.name}</h3>
+            <p className="price">{product.price}</p>
+            <button className="shop-now-mini">Shop Now</button>
+          </div>
+        ))}
       </div>
     </>
   );

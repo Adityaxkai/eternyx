@@ -1,1 +1,77 @@
-[]
+[
+  {
+    "id": "ORD-B4A1D9C5",
+    "customer_id": "cust-emma88",
+    "date": "Jun 7, 2026",
+    "total": 220,
+    "status": "Delivered",
+    "items_count": 1,
+    "items": [
+      {
+        "name": "Silken Oud",
+        "size": "100ml",
+        "price": 220,
+        "quantity": 1,
+        "image": "/images/product-silken-oud.png"
+      }
+    ],
+    "shipping_address": {
+      "street": "123 Luxury Lane",
+      "city": "New York",
+      "zip": "10001",
+      "country": "United States"
+    },
+    "discount_code": null,
+    "created_at": "2026-06-07T14:30:00.000Z"
+  },
+  {
+    "id": "ORD-C9F3E8A1",
+    "customer_id": "cust-aria99",
+    "date": "Jun 8, 2026",
+    "total": 280,
+    "status": "Processing",
+    "items_count": 1,
+    "items": [
+      {
+        "name": "Vetiver Ghost",
+        "size": "100ml",
+        "price": 280,
+        "quantity": 1,
+        "image": "/images/product-vetiver-ghost.png"
+      }
+    ],
+    "shipping_address": {
+      "street": "456 Scent Avenue",
+      "city": "Los Angeles",
+      "zip": "90001",
+      "country": "United States"
+    },
+    "discount_code": null,
+    "created_at": "2026-06-08T09:15:00.000Z"
+  },
+  {
+    "id": "ORD-D3C7B5E2",
+    "customer_id": "cust-emma88",
+    "date": "Jun 8, 2026",
+    "total": 195,
+    "status": "Pending",
+    "items_count": 1,
+    "items": [
+      {
+        "name": "Noir Absolu",
+        "size": "100ml",
+        "price": 195,
+        "quantity": 1,
+        "image": "/images/product-noir-absolu.png"
+      }
+    ],
+    "shipping_address": {
+      "street": "123 Luxury Lane",
+      "city": "New York",
+      "zip": "10001",
+      "country": "United States"
+    },
+    "discount_code": "LUXURY20",
+    "created_at": "2026-06-08T18:22:00.000Z"
+  }
+]

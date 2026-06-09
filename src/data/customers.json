@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": "cust-emma88",
+    "name": "Emma Watson",
+    "email": "emma@example.com",
+    "spent": 415,
+    "orders": 2,
+    "lastActive": "Today"
+  },
+  {
+    "id": "cust-aria99",
+    "name": "Aria Luxe",
+    "email": "aria@luxe.com",
+    "spent": 280,
+    "orders": 1,
+    "lastActive": "Yesterday"
+  },
+  {
+    "id": "cust-julian22",
+    "name": "Julian Vane",
+    "email": "julian@vane.com",
+    "spent": 0,
+    "orders": 0,
+    "lastActive": "2 days ago"
+  }
+]

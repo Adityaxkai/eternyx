@@ -21,3 +21,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: 'Failed to update' }, { status: 400 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const res = NextResponse.json({ ok: true });
+  const session = await getIronSession<SessionData>(request, res, sessionOptions);
+  
+  if (!session.isAdmin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const success = await bannerService.delete(id);
+  if (!success) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json({ success: true });
+}

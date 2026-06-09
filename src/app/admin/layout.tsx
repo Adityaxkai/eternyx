@@ -37,6 +37,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: 'Operations',
       items: [
         { href: '/admin/orders', label: 'Orders' },
+        { href: '/admin/bookings', label: 'Bookings' },
+        { href: '/admin/inquiries', label: 'Inquiries' },
         { href: '/admin/customers', label: 'Customers' },
         { href: '/admin/reviews', label: 'Reviews' }
       ]

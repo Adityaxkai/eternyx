@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "JRN-201",
+    "title": "The Art of Oud Extraction",
+    "author": "Eternyx Editorial",
+    "date": "Oct 12, 2026",
+    "excerpt": "Sourced from the protected wild forests of Assam, we trace the ancient hydro-distillation process that yields ETERNYX's dark, resinous gold.",
+    "content": "Full body text of the article goes here. Our master perfumers travel deep into Assam to select only infected Aquilaria trees that yield the true, complex scent curves of Agarwood. The oil is hydro-distilled locally using traditional methods to preserve its unique molecular density...",
+    "category": "Heritage",
+    "status": "Published"
+  },
+  {
+    "id": "JRN-202",
+    "title": "The Winter Fragrance Wardrobe",
+    "author": "Emma Watson",
+    "date": "Oct 15, 2026",
+    "excerpt": "As temperatures fall, discover how to curate a wardrobe of dense resin, smoked leathers, and velvet roots to cut through the cold air.",
+    "content": "When temperature drops, lighter molecules like citrus and fresh aldehydes evaporate too quickly to make an impact. This article details the science behind shifting towards dense fixatives, ambers, and root accords like Haitian Vetiver and Black Oud during cold months...",
+    "category": "Scent Care",
+    "status": "Draft"
+  },
+  {
+    "id": "JRN-203",
+    "title": "Behind the Scenes: Golden Mirage",
+    "author": "Eternyx Editorial",
+    "date": "Sep 28, 2026",
+    "excerpt": "An inside look at our formulation journals during the search for an olfactory mirage—balancing warm sand accord with cold bergamot.",
+    "content": "Developing Golden Mirage took our lab 18 months and 142 distinct trials. The goal was to recreate the sensation of hot desert sand alongside the sudden coolness of a twilight wind. We achieved this contrast by balancing high-altitude Calabrian Bergamot with a custom heated ambergris baseline...",
+    "category": "Releases",
+    "status": "Published"
+  }
+]

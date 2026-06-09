@@ -10,6 +10,23 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Drawer states
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  // Form inputs
+  const [formName, setFormName] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formPrice, setFormPrice] = useState(180);
+  const [formCategory, setFormCategory] = useState('Eau de Parfum');
+  const [formVolume, setFormVolume] = useState('100 ml');
+  const [formImageUrl, setFormImageUrl] = useState('');
+  const [formBadge, setFormBadge] = useState('');
+  const [formVisible, setFormVisible] = useState(true);
+
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -81,6 +98,109 @@ export default function ProductsPage() {
     }
   };
 
+  const openDrawer = (product: Product | null = null) => {
+    if (product) {
+      setEditingProduct(product);
+      setFormName(product.name);
+      setFormDescription(product.description || '');
+      setFormPrice(product.price);
+      setFormCategory(product.category || '');
+      setFormVolume(product.volume || '100 ml');
+      setFormImageUrl(product.image_url || '');
+      setFormBadge(product.badge || '');
+      setFormVisible(product.visible);
+    } else {
+      setEditingProduct(null);
+      setFormName('');
+      setFormDescription('');
+      setFormPrice(180);
+      setFormCategory('Eau de Parfum');
+      setFormVolume('100 ml');
+      setFormImageUrl('');
+      setFormBadge('');
+      setFormVisible(true);
+    }
+    setIsDrawerOpen(true);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setFormImageUrl(data.url);
+      } else {
+        alert('Failed to upload image.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Upload error.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName || !formPrice || !formImageUrl) {
+      alert('Please fill in Name, Price, and Image.');
+      return;
+    }
+
+    setSubmitting(true);
+    const payload = {
+      name: formName,
+      description: formDescription,
+      price: Number(formPrice),
+      category: formCategory,
+      volume: formVolume,
+      image_url: formImageUrl,
+      badge: formBadge || undefined,
+      visible: formVisible,
+    };
+
+    try {
+      let res;
+      if (editingProduct) {
+        res = await fetch(`/api/admin/products/${editingProduct.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (res.ok) {
+        setIsDrawerOpen(false);
+        fetchProducts();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to save product.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving product.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return <div className="admin-loading">Loading products...</div>;
   }
@@ -89,9 +209,9 @@ export default function ProductsPage() {
     <div>
       <div className="admin-page-header">
         <h1 className="admin-page-title">Products</h1>
-        <Link href="/admin/products/new" className="admin-btn-primary">
+        <button onClick={() => openDrawer(null)} className="admin-btn-primary">
           + Add Product
-        </Link>
+        </button>
       </div>
 
       <div className="table-container">
@@ -144,14 +264,14 @@ export default function ProductsPage() {
                         </div>
                         <div className="td col-status">
                           <button 
-                            className={`toggle-btn ${product.visible ? 'on' : 'off'}`}
-                            onClick={() => toggleVisibility(product.id, product.visible)}
+                             className={`toggle-btn ${product.visible ? 'on' : 'off'}`}
+                             onClick={() => toggleVisibility(product.id, product.visible)}
                           >
                             {product.visible ? 'Visible' : 'Hidden'}
                           </button>
                         </div>
                         <div className="td col-actions">
-                          <Link href={`/admin/products/${product.id}`} className="action-link edit">Edit</Link>
+                          <button onClick={() => openDrawer(product)} className="action-link edit">Edit</button>
                           <button onClick={() => deleteProduct(product.id)} className="action-link delete">Delete</button>
                         </div>
                       </div>
@@ -163,6 +283,130 @@ export default function ProductsPage() {
             )}
           </Droppable>
         </DragDropContext>
+      </div>
+
+      {/* Sliding Form Drawer */}
+      <div className={`drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)}>
+        <div className={`drawer-content ${isDrawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+          <div className="drawer-header">
+            <h2>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+            <button className="close-btn" onClick={() => setIsDrawerOpen(false)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="drawer-form">
+            <div className="form-group">
+              <label>Name</label>
+              <input 
+                type="text" 
+                value={formName} 
+                onChange={(e) => setFormName(e.target.value)} 
+                placeholder="Product Name"
+                required
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Category</label>
+                <input 
+                  type="text" 
+                  value={formCategory} 
+                  onChange={(e) => setFormCategory(e.target.value)} 
+                  placeholder="e.g. Eau de Parfum"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Volume</label>
+                <input 
+                  type="text" 
+                  value={formVolume} 
+                  onChange={(e) => setFormVolume(e.target.value)} 
+                  placeholder="e.g. 100 ml"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Price ($)</label>
+                <input 
+                  type="number" 
+                  value={formPrice} 
+                  onChange={(e) => setFormPrice(Number(e.target.value))} 
+                  placeholder="180"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Badge</label>
+                <input 
+                  type="text" 
+                  value={formBadge} 
+                  onChange={(e) => setFormBadge(e.target.value)} 
+                  placeholder="e.g. Bestseller, New (Optional)"
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Description</label>
+              <textarea 
+                value={formDescription} 
+                onChange={(e) => setFormDescription(e.target.value)} 
+                placeholder="Fragrance description..."
+                rows={4}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Product Image</label>
+              <div className="image-upload-wrapper">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileUpload} 
+                  id="product-image-upload" 
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="product-image-upload" className="upload-box">
+                  {uploading ? (
+                    <span className="spinner">Uploading...</span>
+                  ) : formImageUrl ? (
+                    <img src={formImageUrl} alt="Preview" className="upload-preview" />
+                  ) : (
+                    <span className="upload-placeholder">Click to upload image</span>
+                  )}
+                </label>
+                {formImageUrl && (
+                  <p className="image-url-text">URL: {formImageUrl}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="form-group toggle-group">
+              <label>Visible on Website</label>
+              <button 
+                type="button"
+                className={`toggle-btn ${formVisible ? 'on' : 'off'}`}
+                onClick={() => setFormVisible(!formVisible)}
+              >
+                {formVisible ? 'Yes' : 'No'}
+              </button>
+            </div>
+
+            <button type="submit" className="submit-btn" disabled={uploading || submitting}>
+              {submitting ? 'Saving...' : editingProduct ? 'Save Changes' : 'Create Product'}
+            </button>
+          </form>
+        </div>
       </div>
 
       <style jsx>{`
@@ -179,12 +423,13 @@ export default function ProductsPage() {
           background: #d4af37;
           color: #000;
           padding: 10px 20px;
-          text-decoration: none;
+          border: none;
           font-size: 0.85rem;
           font-weight: 600;
           letter-spacing: 0.1em;
           text-transform: uppercase;
           border-radius: 2px;
+          cursor: pointer;
           transition: opacity 0.2s ease;
         }
         
@@ -344,6 +589,200 @@ export default function ProductsPage() {
           text-align: center;
           color: rgba(255, 255, 255, 0.4);
           font-style: italic;
+        }
+
+        /* Drawer Styles */
+        .drawer-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(4px);
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.3s ease;
+          z-index: 1000;
+        }
+
+        .drawer-overlay.open {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .drawer-content {
+          position: fixed;
+          top: 0;
+          right: -450px;
+          width: 100%;
+          max-width: 450px;
+          height: 100%;
+          background: #0d0d0d;
+          border-left: 1px solid rgba(255, 255, 255, 0.05);
+          box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+          padding: 30px;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          z-index: 1001;
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+        }
+
+        .drawer-content.open {
+          right: 0;
+        }
+
+        .drawer-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 30px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .drawer-header h2 {
+          font-family: var(--font-serif);
+          font-size: 1.4rem;
+          color: #fff;
+          font-weight: 300;
+          margin: 0;
+          letter-spacing: 0.05em;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          color: rgba(255, 255, 255, 0.4);
+          cursor: pointer;
+          transition: color 0.2s;
+          padding: 5px;
+        }
+
+        .close-btn:hover {
+          color: #fff;
+        }
+
+        .drawer-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          flex: 1;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 16px;
+        }
+
+        .form-row .form-group {
+          flex: 1;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .form-group label {
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .form-group input,
+        .form-group textarea {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 2px;
+          padding: 10px 14px;
+          color: #fff;
+          font-size: 0.9rem;
+          font-family: var(--font-sans);
+          transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+          outline: none;
+          border-color: #d4af37;
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .image-upload-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .upload-box {
+          height: 120px;
+          border: 1px dashed rgba(255, 255, 255, 0.15);
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          background: rgba(255, 255, 255, 0.01);
+          overflow: hidden;
+          transition: border-color 0.2s;
+        }
+
+        .upload-box:hover {
+          border-color: #d4af37;
+        }
+
+        .upload-placeholder {
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .upload-preview {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .image-url-text {
+          font-size: 0.65rem;
+          color: rgba(255, 255, 255, 0.3);
+          word-break: break-all;
+          margin: 0;
+        }
+
+        .toggle-group {
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .submit-btn {
+          margin-top: 15px;
+          background: #d4af37;
+          color: #000;
+          border: none;
+          padding: 12px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       `}</style>
     </div>

@@ -34,3 +34,20 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to update' }, { status: 400 });
   }
 }
+
+export async function POST(request: NextRequest) {
+  const res = NextResponse.json({ ok: true });
+  const session = await getIronSession<SessionData>(request, res, sessionOptions);
+  
+  if (!session.isAdmin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const data = await request.json();
+    const newBanner = await bannerService.create(data);
+    return NextResponse.json(newBanner, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to create banner' }, { status: 400 });
+  }
+}

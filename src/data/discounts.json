@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "disc-luxury20",
+    "code": "LUXURY20",
+    "type": "Percentage",
+    "value": 20,
+    "usage_count": 1,
+    "active": true,
+    "created_at": "2026-06-05T10:00:00.000Z"
+  },
+  {
+    "id": "disc-freeship",
+    "code": "FREESHIP",
+    "type": "Free Shipping",
+    "value": 0,
+    "usage_count": 0,
+    "active": true,
+    "created_at": "2026-06-06T12:00:00.000Z"
+  }
+]

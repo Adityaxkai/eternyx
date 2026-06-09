@@ -1,33 +1,102 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface Review {
+  id: string;
+  product: string;
+  customer: string;
+  rating: number;
+  date: string;
+  comment: string;
+  status: string;
+}
 
 export default function ReviewsPage() {
-  const [reviews] = useState([
-    { id: 'REV-101', product: 'Oud Symphony', customer: 'Emma W.', rating: 5, date: 'Oct 14, 2026', comment: 'Absolutely mesmerizing. The scent lasts all day and feels incredibly luxurious.', status: 'Published' },
-    { id: 'REV-102', product: 'Midnight Iris', customer: 'James B.', rating: 4, date: 'Oct 12, 2026', comment: 'Great fragrance, very subtle but distinct. Packaging was a bit dented on arrival though.', status: 'Pending' },
-    { id: 'REV-103', product: 'Golden Mirage', customer: 'Sarah C.', rating: 5, date: 'Oct 10, 2026', comment: 'My new signature scent. Worth every penny.', status: 'Published' },
-    { id: 'REV-104', product: 'Oud Symphony', customer: 'Tony S.', rating: 2, date: 'Oct 08, 2026', comment: 'Too strong for my liking. Gives me a headache.', status: 'Hidden' },
-  ]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState('All Products');
+  const [selectedStatus, setSelectedStatus] = useState('All Statuses');
+
+  const fetchReviews = () => {
+    setLoading(true);
+    fetch('/api/admin/reviews')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setReviews(data);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch reviews:', err);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      // Optimistic update
+      setReviews((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+      );
+      
+      const res = await fetch(`/api/admin/reviews/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update status');
+      }
+    } catch (err) {
+      console.error(err);
+      fetchReviews();
+    }
+  };
 
   const renderStars = (rating: number) => {
     return '★'.repeat(rating) + '☆'.repeat(5 - rating);
   };
 
+  const filteredReviews = reviews.filter((r) => {
+    const matchProduct = selectedProduct === 'All Products' || r.product === selectedProduct;
+    const matchStatus = selectedStatus === 'All Statuses' || r.status === selectedStatus;
+    return matchProduct && matchStatus;
+  });
+
   return (
     <div>
       <div className="admin-page-header">
         <h1 className="admin-page-title">Reviews</h1>
+        <button className="admin-btn-primary" onClick={fetchReviews} disabled={loading}>
+          {loading ? 'Refreshing...' : 'Refresh'}
+        </button>
       </div>
 
       <div className="admin-filters">
-        <select className="admin-select">
+        <select 
+          className="admin-select"
+          value={selectedProduct}
+          onChange={(e) => setSelectedProduct(e.target.value)}
+        >
           <option>All Products</option>
           <option>Oud Symphony</option>
           <option>Midnight Iris</option>
           <option>Golden Mirage</option>
+          <option>Vetiver Ghost</option>
+          <option>Eternyx Noir</option>
         </select>
-        <select className="admin-select">
+        <select 
+          className="admin-select"
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+        >
           <option>All Statuses</option>
           <option>Published</option>
           <option>Pending</option>
@@ -35,43 +104,90 @@ export default function ReviewsPage() {
         </select>
       </div>
 
-      <div className="table-container">
-        <div className="table-header">
-          <div className="col-product">Product</div>
-          <div className="col-rating">Rating</div>
-          <div className="col-review">Review</div>
-          <div className="col-date">Date</div>
-          <div className="col-status">Status</div>
-          <div className="col-actions"></div>
-        </div>
+      {loading ? (
+        <div className="admin-loading">Loading reviews...</div>
+      ) : filteredReviews.length === 0 ? (
+        <div className="admin-empty">No reviews found matching the filters.</div>
+      ) : (
+        <div className="table-container">
+          <div className="table-header">
+            <div className="col-product">Product</div>
+            <div className="col-rating">Rating</div>
+            <div className="col-review">Review</div>
+            <div className="col-date">Date</div>
+            <div className="col-status">Status</div>
+            <div className="col-actions"></div>
+          </div>
 
-        <div className="table-body">
-          {reviews.map((review) => (
-            <div key={review.id} className="table-row">
-              <div className="col-product"><strong>{review.product}</strong></div>
-              <div className="col-rating">
-                <span className="stars">{renderStars(review.rating)}</span>
+          <div className="table-body">
+            {filteredReviews.map((review) => (
+              <div key={review.id} className="table-row">
+                <div className="col-product"><strong>{review.product}</strong></div>
+                <div className="col-rating">
+                  <span className="stars">{renderStars(review.rating)}</span>
+                </div>
+                <div className="col-review">
+                  <div className="review-customer">{review.customer}</div>
+                  <div className="review-comment">"{review.comment}"</div>
+                </div>
+                <div className="col-date">{review.date}</div>
+                <div className="col-status">
+                  <span className={`status-badge ${review.status.toLowerCase()}`}>
+                    {review.status}
+                  </span>
+                </div>
+                <div className="col-actions">
+                  {review.status !== 'Published' && (
+                    <button 
+                      className="action-btn approve" 
+                      onClick={() => handleUpdateStatus(review.id, 'Published')}
+                    >
+                      Approve
+                    </button>
+                  )}
+                  {review.status !== 'Hidden' && (
+                    <button 
+                      className="action-btn hide" 
+                      onClick={() => handleUpdateStatus(review.id, 'Hidden')}
+                    >
+                      Hide
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="col-review">
-                <div className="review-customer">{review.customer}</div>
-                <div className="review-comment">"{review.comment}"</div>
-              </div>
-              <div className="col-date">{review.date}</div>
-              <div className="col-status">
-                <span className={`status-badge ${review.status.toLowerCase()}`}>
-                  {review.status}
-                </span>
-              </div>
-              <div className="col-actions">
-                <button className="action-btn approve">Approve</button>
-                <button className="action-btn hide">Hide</button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <style jsx>{`
+        .admin-btn-primary {
+          background: #d4af37;
+          color: #000;
+          padding: 10px 20px;
+          border: none;
+          font-size: 0.85rem;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          border-radius: 2px;
+          cursor: pointer;
+        }
+
+        .admin-btn-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .admin-loading, .admin-empty {
+          padding: 80px 0;
+          text-align: center;
+          color: rgba(255, 255, 255, 0.4);
+          background: #111;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 4px;
+        }
+
         .admin-filters {
           display: flex;
           gap: 16px;
@@ -125,7 +241,7 @@ export default function ReviewsPage() {
         .col-review { flex: 1; padding-right: 20px; }
         .col-date { width: 120px; color: rgba(255, 255, 255, 0.5); font-size: 0.85rem; }
         .col-status { width: 100px; }
-        .col-actions { width: 140px; display: flex; gap: 8px; justify-content: flex-end; }
+        .col-actions { width: 180px; display: flex; gap: 8px; justify-content: flex-end; }
 
         .stars {
           color: #d4af37;
@@ -166,6 +282,7 @@ export default function ReviewsPage() {
           border-radius: 4px;
           font-size: 0.75rem;
           cursor: pointer;
+          transition: all 0.2s;
         }
 
         .action-btn.approve {

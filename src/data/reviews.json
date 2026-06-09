@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "REV-101",
+    "product": "Oud Symphony",
+    "customer": "Emma W.",
+    "rating": 5,
+    "date": "Oct 14, 2026",
+    "comment": "Absolutely mesmerizing. The scent lasts all day and feels incredibly luxurious.",
+    "status": "Published"
+  },
+  {
+    "id": "REV-102",
+    "product": "Midnight Iris",
+    "customer": "James B.",
+    "rating": 4,
+    "date": "Oct 12, 2026",
+    "comment": "Great fragrance, very subtle but distinct. Packaging was a bit dented on arrival though.",
+    "status": "Pending"
+  },
+  {
+    "id": "REV-103",
+    "product": "Golden Mirage",
+    "customer": "Sarah C.",
+    "rating": 5,
+    "date": "Oct 10, 2026",
+    "comment": "My new signature scent. Worth every penny.",
+    "status": "Published"
+  },
+  {
+    "id": "REV-104",
+    "product": "Oud Symphony",
+    "customer": "Tony S.",
+    "rating": 2,
+    "date": "Oct 08, 2026",
+    "comment": "Too strong for my liking. Gives me a headache.",
+    "status": "Hidden"
+  }
+]
