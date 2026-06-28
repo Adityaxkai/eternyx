@@ -2,6 +2,7 @@
 
 import { useCart } from '@/context/CartContext';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function CartDrawer() {
   const {
@@ -14,44 +15,52 @@ export default function CartDrawer() {
     clearCart
   } = useCart();
 
+  const router = useRouter();
   const drawerRef = useRef<HTMLDivElement>(null);
-  
-  // Cart Flow Steps: 'cart' | 'checkout' | 'success'
-  const [step, setStep] = useState<'cart' | 'checkout' | 'success'>('cart');
-  
+
+  // Prevent SSR/hydration Styled-JSX mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Promo states
   const [promoCode, setPromoCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: string; value: number } | null>(null);
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
+  const [isPromoExpanded, setIsPromoExpanded] = useState(false);
 
-  // Checkout Form States
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [street, setStreet] = useState('');
-  const [city, setCity] = useState('');
-  const [zip, setZip] = useState('');
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState('');
-  const [createdOrderId, setCreatedOrderId] = useState('');
-
-  // Reset checkout view when cart becomes empty
+  // Toggle scroll locks whenever cart drawer is opened
   useEffect(() => {
-    if (cartItems.length === 0 && step !== 'success') {
+    const lenis = (window as any).lenis;
+    if (isCartOpen) {
+      lenis?.stop();
+      document.body.style.overflow = 'hidden';
+    } else {
+      const isProductModalOpen = document.querySelector('.pm-overlay');
+      if (!isProductModalOpen) {
+        lenis?.start();
+        document.body.style.overflow = '';
+      }
+    }
+    return () => {
+      const isProductModalOpen = document.querySelector('.pm-overlay');
+      if (!isProductModalOpen) {
+        lenis?.start();
+        document.body.style.overflow = '';
+      }
+    };
+  }, [isCartOpen]);
+
+  // Reset promo when cart becomes empty
+  useEffect(() => {
+    if (cartItems.length === 0) {
       setAppliedDiscount(null);
       setPromoCode('');
       setPromoError('');
-      setStep('cart');
     }
-  }, [cartItems, step]);
-
-  // Reset steps back to standard bag if drawer closes from success state
-  useEffect(() => {
-    if (!isCartOpen && step === 'success') {
-      setStep('cart');
-      setAppliedDiscount(null);
-    }
-  }, [isCartOpen, step]);
+  }, [cartItems]);
 
   // Close cart drawer on escape key
   useEffect(() => {
@@ -110,64 +119,7 @@ export default function CartDrawer() {
     setPromoError('');
   };
 
-  const handleCheckoutSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !name || !street || !city || !zip) {
-      setCheckoutError('Please fill out all address fields.');
-      return;
-    }
-
-    setCheckoutLoading(true);
-    setCheckoutError('');
-
-    const payload = {
-      email,
-      name,
-      address: {
-        street,
-        city,
-        zip,
-        country: 'United States'
-      },
-      items: cartItems.map(item => ({
-        name: item.name,
-        size: item.size,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image
-      })),
-      discountCode: appliedDiscount?.code || null,
-      total: finalTotal
-    };
-
-    try {
-      const res = await fetch('/api/admin/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setCreatedOrderId(data.id);
-        setStep('success');
-        clearCart();
-        // Reset forms
-        setEmail('');
-        setName('');
-        setStreet('');
-        setCity('');
-        setZip('');
-      } else {
-        setCheckoutError(data.error || 'Failed to process checkout');
-      }
-    } catch (err) {
-      console.error('Checkout error:', err);
-      setCheckoutError('Fulfillment processing error. Try again.');
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
+  if (!mounted) return null;
 
   return (
     <>
@@ -180,13 +132,7 @@ export default function CartDrawer() {
         className={`cart-drawer ${isCartOpen ? 'open' : ''}`}
       >
         <div className="cart-header">
-          {step === 'checkout' ? (
-            <button className="back-btn" onClick={() => setStep('cart')} aria-label="Go back to shopping bag">
-              &larr; Back to Bag
-            </button>
-          ) : (
-            <h2>Shopping Bag</h2>
-          )}
+          <h2>Shopping Bag</h2>
           <button className="close-btn" onClick={() => setIsCartOpen(false)} aria-label="Close Drawer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
               <line x1="18" y1="6" x2="6" y2="18"/>
@@ -195,221 +141,123 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        {/* Step-based Content Switching */}
-        {step === 'cart' && (
-          <div className="cart-content">
-            {cartItems.length === 0 ? (
-              <div className="empty-cart">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6z" />
-                  <path d="M3 6h18" />
-                  <path d="M16 10a4 4 0 01-8 0" />
-                </svg>
-                <p>Your bag is empty.</p>
-                <button className="shop-btn" onClick={() => setIsCartOpen(false)}>Shop Scent Collection</button>
-              </div>
-            ) : (
-              <div className="cart-items-list">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="cart-item">
-                    <div className="item-image">
-                      <img src={item.image} alt={item.name} />
+        <div className="cart-content" data-lenis-prevent>
+          {cartItems.length === 0 ? (
+            <div className="empty-cart">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4H6z" />
+                <path d="M3 6h18" />
+                <path d="M16 10a4 4 0 01-8 0" />
+              </svg>
+              <p>Your bag is empty.</p>
+              <button className="shop-btn" onClick={() => setIsCartOpen(false)}>Shop Scent Collection</button>
+            </div>
+          ) : (
+            <div className="cart-items-list">
+              {cartItems.map((item) => (
+                <div key={item.id} className="cart-item">
+                  <div className="item-image">
+                    <img src={item.image} alt={item.name} />
+                  </div>
+                  <div className="item-details">
+                    <div className="item-header-row">
+                      <div className="item-titles">
+                        <h3>{item.name}</h3>
+                        <p className="item-category">{item.category} • {item.size}</p>
+                      </div>
+                      <button 
+                        className="item-remove-link" 
+                        onClick={() => removeFromCart(item.name, item.size)}
+                        aria-label="Remove item"
+                      >
+                        Remove
+                      </button>
                     </div>
-                    <div className="item-details">
-                      <div className="item-header">
-                        <div>
-                          <h3>{item.name}</h3>
-                          <p className="item-category">{item.category}</p>
-                          <p className="item-size">Size: {item.size}</p>
-                        </div>
+
+                    <div className="item-footer-row">
+                      <div className="quantity-controls">
                         <button 
-                          className="remove-btn" 
-                          onClick={() => removeFromCart(item.name, item.size)}
-                          aria-label="Remove item"
+                          onClick={() => updateQuantity(item.name, item.size, item.quantity - 1)}
+                          aria-label="Decrease quantity"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                          </svg>
+                          -
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.name, item.size, item.quantity + 1)}
+                          aria-label="Increase quantity"
+                        >
+                          +
                         </button>
                       </div>
-
-                      <div className="item-footer">
-                        <div className="quantity-controls">
-                          <button 
-                            onClick={() => updateQuantity(item.name, item.size, item.quantity - 1)}
-                            aria-label="Decrease quantity"
-                          >
-                            -
-                          </button>
-                          <span>{item.quantity}</span>
-                          <button 
-                            onClick={() => updateQuantity(item.name, item.size, item.quantity + 1)}
-                            aria-label="Increase quantity"
-                          >
-                            +
-                          </button>
-                        </div>
-                        <p className="item-price">${(item.price * item.quantity).toLocaleString()}</p>
-                      </div>
+                      <p className="item-price">${(item.price * item.quantity).toLocaleString()}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {step === 'checkout' && (
-          <div className="checkout-content">
-            <form onSubmit={handleCheckoutSubmit} className="checkout-form">
-              <h3>Shipping Address</h3>
-              {checkoutError && <p className="checkout-error">{checkoutError}</p>}
-              
-              <div className="checkout-field">
-                <label htmlFor="chk-email">Email Address</label>
-                <input
-                  id="chk-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="emma@example.com"
-                  required
-                />
-              </div>
-
-              <div className="checkout-field">
-                <label htmlFor="chk-name">Full Name</label>
-                <input
-                  id="chk-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Emma Watson"
-                  required
-                />
-              </div>
-
-              <div className="checkout-field">
-                <label htmlFor="chk-street">Street Address</label>
-                <input
-                  id="chk-street"
-                  type="text"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                  placeholder="123 Luxury Lane"
-                  required
-                />
-              </div>
-
-              <div className="checkout-row">
-                <div className="checkout-field half">
-                  <label htmlFor="chk-city">City</label>
-                  <input
-                    id="chk-city"
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="New York"
-                    required
-                  />
                 </div>
-                <div className="checkout-field half">
-                  <label htmlFor="chk-zip">ZIP Code</label>
-                  <input
-                    id="chk-zip"
-                    type="text"
-                    value={zip}
-                    onChange={(e) => setZip(e.target.value)}
-                    placeholder="10001"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="checkout-field">
-                <label>Billing & Payment</label>
-                <div className="mock-card-details">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="1.5">
-                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                    <line x1="2" y1="10" x2="22" y2="10" />
-                  </svg>
-                  <span>Pre-authorized Live Demo Checkout</span>
-                </div>
-              </div>
-
-              <div className="checkout-summary-mini">
-                <span>Total amount due:</span>
-                <strong>${finalTotal.toLocaleString()}</strong>
-              </div>
-
-              <button type="submit" className="checkout-btn" disabled={checkoutLoading}>
-                {checkoutLoading ? 'Authorizing Payment...' : `Complete Purchase — $${finalTotal.toLocaleString()}`}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {step === 'success' && (
-          <div className="success-content">
-            <div className="success-card">
-              <div className="success-icon">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d4af37" strokeWidth="1">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
-              <h2>Scent Confirmed</h2>
-              <p className="success-subheading">Your order will arrive in silence.</p>
-              
-              <div className="receipt-box">
-                <p className="receipt-label">Order Reference</p>
-                <p className="receipt-value">{createdOrderId}</p>
-                <p className="receipt-label" style={{ marginTop: '15px' }}>Delivery Timelines</p>
-                <p className="receipt-value" style={{ fontSize: '0.8rem', color: '#fff' }}>2 - 4 business days</p>
-              </div>
-
-              <button className="continue-shop-btn" onClick={() => setIsCartOpen(false)}>
-                Continue Shopping
-              </button>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Step Cart Footers */}
-        {step === 'cart' && cartItems.length > 0 && (
+        {cartItems.length > 0 && (
           <div className="cart-footer">
-            {/* Promo Code Form */}
-            <form onSubmit={handleApplyPromo} className="promo-form">
-              <input
-                type="text"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                placeholder="PROMO CODE"
-                disabled={promoLoading || !!appliedDiscount}
-              />
-              {appliedDiscount ? (
-                <button type="button" onClick={handleRemovePromo} className="promo-btn remove">
-                  Remove
-                </button>
-              ) : (
-                <button type="submit" disabled={promoLoading || !promoCode.trim()} className="promo-btn">
-                  {promoLoading ? '...' : 'Apply'}
-                </button>
-              )}
-            </form>
-            {promoError && <p className="promo-error">{promoError}</p>}
-            {appliedDiscount && (
-              <p className="promo-success">
-                Code <strong>{appliedDiscount.code}</strong> applied (
-                {appliedDiscount.type === 'Percentage'
-                  ? `${appliedDiscount.value}% off`
-                  : appliedDiscount.type === 'Fixed Amount'
-                  ? `$${appliedDiscount.value} off`
-                  : 'Free Shipping'}
-                )
-              </p>
-            )}
+            {/* Promo Code Accordion */}
+            <div className="promo-accordion">
+              <button 
+                type="button" 
+                className="promo-toggle-btn"
+                onClick={() => setIsPromoExpanded(!isPromoExpanded)}
+              >
+                <span>{appliedDiscount ? 'Promo Code Applied' : 'Have a Promo Code?'}</span>
+                <svg 
+                  width="12" 
+                  height="12" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="1.5"
+                  style={{ 
+                    transform: isPromoExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease'
+                  }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              <div className={`promo-collapse-content ${isPromoExpanded || appliedDiscount ? 'expanded' : ''}`}>
+                <form onSubmit={handleApplyPromo} className="promo-form">
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    placeholder="PROMO CODE"
+                    disabled={promoLoading || !!appliedDiscount}
+                  />
+                  {appliedDiscount ? (
+                    <button type="button" onClick={handleRemovePromo} className="promo-btn remove">
+                      Remove
+                    </button>
+                  ) : (
+                    <button type="submit" disabled={promoLoading || !promoCode.trim()} className="promo-btn">
+                      {promoLoading ? '...' : 'Apply'}
+                    </button>
+                  )}
+                </form>
+                {promoError && <p className="promo-error">{promoError}</p>}
+                {appliedDiscount && (
+                  <p className="promo-success">
+                    Code <strong>{appliedDiscount.code}</strong> applied (
+                    {appliedDiscount.type === 'Percentage'
+                      ? `${appliedDiscount.value}% off`
+                      : appliedDiscount.type === 'Fixed Amount'
+                      ? `$${appliedDiscount.value} off`
+                      : 'Free Shipping'}
+                    )
+                  </p>
+                )}
+              </div>
+            </div>
 
             <div className="cart-summary-totals">
               <div className="summary-row">
@@ -433,8 +281,18 @@ export default function CartDrawer() {
                 ? 'Free shipping applied. Taxes calculated at checkout.' 
                 : 'Shipping and taxes calculated at checkout.'}
             </p>
-            <button className="checkout-btn" onClick={() => setStep('checkout')}>
-              Proceed to Checkout
+            <button 
+              className="checkout-btn" 
+              onClick={() => {
+                setIsCartOpen(false);
+                router.push(appliedDiscount ? `/checkout?promo=${appliedDiscount.code}` : '/checkout');
+              }}
+            >
+              <span>Proceed to Checkout</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: '4px' }}>
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
             </button>
             <button className="clear-cart-btn" onClick={clearCart}>
               Clear Bag
@@ -455,7 +313,7 @@ export default function CartDrawer() {
           opacity: 0;
           visibility: hidden;
           transition: all 0.4s ease;
-          z-index: 10000;
+          z-index: 100001;
         }
 
         .cart-overlay.open {
@@ -466,7 +324,7 @@ export default function CartDrawer() {
         .cart-drawer {
           position: fixed;
           top: 0;
-          right: -420px;
+          right: 0;
           width: 100%;
           max-width: 420px;
           height: 100%;
@@ -475,21 +333,23 @@ export default function CartDrawer() {
           box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6);
           display: flex;
           flex-direction: column;
-          z-index: 10001;
+          z-index: 100002;
+          transform: translateX(100%);
           transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .cart-drawer.open {
-          transform: translateX(-420px);
+          transform: translateX(0);
         }
 
         @media (max-width: 420px) {
           .cart-drawer {
-            right: -100%;
+            right: 0;
             max-width: 100%;
+            transform: translateX(100%);
           }
           .cart-drawer.open {
-            transform: translateX(-100%);
+            transform: translateX(0);
           }
         }
 
@@ -497,7 +357,7 @@ export default function CartDrawer() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 24px 30px;
+          padding: 18px 24px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
           flex-shrink: 0;
         }
@@ -541,7 +401,8 @@ export default function CartDrawer() {
         .cart-content, .checkout-content, .success-content {
           flex: 1;
           overflow-y: auto;
-          padding: 30px;
+          overflow-x: hidden;
+          padding: 20px 24px;
         }
 
         .empty-cart {
@@ -581,14 +442,21 @@ export default function CartDrawer() {
         .cart-items-list {
           display: flex;
           flex-direction: column;
-          gap: 24px;
+          gap: 16px;
         }
 
         .cart-item {
           display: flex;
-          gap: 20px;
-          padding-bottom: 24px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+          flex-direction: row;
+          gap: 16px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          position: relative;
+        }
+
+        .cart-item:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
         }
 
         .item-image {
@@ -598,6 +466,8 @@ export default function CartDrawer() {
           border-radius: 4px;
           overflow: hidden;
           flex-shrink: 0;
+          position: relative;
+          border: 1px solid rgba(255, 255, 255, 0.04);
         }
 
         .item-image img {
@@ -613,71 +483,82 @@ export default function CartDrawer() {
           justify-content: space-between;
         }
 
-        .item-header {
+        .item-header-row {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 10px;
+          gap: 12px;
         }
 
-        .item-header h3 {
+        .item-titles {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .item-header-row h3 {
           font-family: var(--font-serif);
-          font-size: 1rem;
+          font-size: 0.95rem;
           color: #fff;
-          margin: 0 0 4px 0;
+          margin: 0;
           font-weight: 300;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.02em;
+          line-height: 1.2;
         }
 
         .item-category {
           font-size: 0.65rem;
-          color: #d4af37;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          margin-bottom: 4px;
+          color: rgba(255, 255, 255, 0.45);
+          margin: 0;
+          font-family: var(--font-sans);
+          letter-spacing: 0.01em;
         }
 
-        .item-size {
-          font-size: 0.7rem;
-          color: rgba(255, 255, 255, 0.4);
-        }
-
-        .remove-btn {
+        .item-remove-link {
           background: none;
           border: none;
-          color: rgba(255, 255, 255, 0.3);
+          color: #d4af37;
+          font-size: 0.68rem;
           cursor: pointer;
+          font-family: inherit;
+          padding: 0;
+          text-decoration: underline;
           transition: color 0.2s;
-          padding: 2px;
         }
 
-        .remove-btn:hover {
+        .item-remove-link:hover {
           color: #ef4444;
         }
 
-        .item-footer {
+        .item-footer-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          margin-top: auto;
         }
 
         .quantity-controls {
           display: flex;
           align-items: center;
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 2px;
+          border-radius: 4px;
           background: rgba(255, 255, 255, 0.02);
+          height: 24px;
         }
 
         .quantity-controls button {
           background: none;
           border: none;
           color: rgba(255, 255, 255, 0.6);
-          width: 28px;
-          height: 28px;
+          width: 22px;
+          height: 100%;
           cursor: pointer;
-          font-size: 0.95rem;
-          transition: color 0.2s, background 0.2s;
+          font-size: 0.8rem;
+          line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
         }
 
         .quantity-controls button:hover {
@@ -686,16 +567,21 @@ export default function CartDrawer() {
         }
 
         .quantity-controls span {
-          width: 30px;
+          width: 16px;
           text-align: center;
-          font-size: 0.8rem;
+          font-size: 0.72rem;
           color: #fff;
+          line-height: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .item-price {
           font-size: 0.9rem;
           color: #fff;
           font-family: var(--font-serif);
+          font-weight: 300;
         }
 
         /* Checkout Form Styling */
@@ -729,6 +615,8 @@ export default function CartDrawer() {
         }
 
         .checkout-field input {
+          width: 100%;
+          box-sizing: border-box;
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid rgba(255, 255, 255, 0.08);
           color: #fff;
@@ -872,113 +760,349 @@ export default function CartDrawer() {
           color: #000;
         }
 
+        .checkout-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          padding-bottom: 10px;
+          margin-bottom: 5px;
+        }
+
+        .checkout-header-row h3 {
+          border-bottom: none;
+          padding-bottom: 0;
+          margin-bottom: 0;
+        }
+
+        .auth-link-btn {
+          background: none;
+          border: none;
+          color: #d4af37;
+          font-size: 0.7rem;
+          text-decoration: underline;
+          cursor: pointer;
+          font-family: inherit;
+          padding: 0;
+          transition: color 0.2s;
+        }
+
+        .auth-link-btn:hover {
+          color: #fff;
+        }
+
+        .auth-status-bar {
+          display: flex;
+          align-items: center;
+          font-size: 0.7rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .auth-logout-btn {
+          background: none;
+          border: none;
+          color: #ef4444;
+          font-size: 0.7rem;
+          text-decoration: underline;
+          cursor: pointer;
+          margin-left: 8px;
+          padding: 0;
+          font-family: inherit;
+        }
+
+        .auth-logout-btn:hover {
+          color: #f87171;
+        }
+
+        .auth-subtext {
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.4);
+          margin-top: -10px;
+          margin-bottom: 20px;
+        }
+
+        .switch-auth-btn {
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: rgba(255, 255, 255, 0.6);
+          width: 100%;
+          padding: 12px;
+          font-size: 0.7rem;
+          cursor: pointer;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-top: 10px;
+          border-radius: 2px;
+          transition: all 0.2s;
+        }
+
+        .switch-auth-btn:hover {
+          border-color: #fff;
+          color: #fff;
+        }
+
+        .save-account-box {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(212, 175, 55, 0.15);
+          border-radius: 4px;
+          padding: 18px;
+          margin: 20px 0;
+          text-align: left;
+          width: 100%;
+        }
+
+        .save-account-form h4 {
+          font-family: var(--font-serif);
+          font-size: 0.95rem;
+          color: #fff;
+          margin: 0 0 6px 0;
+          font-weight: 400;
+          letter-spacing: 0.05em;
+        }
+
+        .save-account-form p {
+          font-size: 0.7rem;
+          color: rgba(255, 255, 255, 0.4);
+          margin: 0 0 12px 0;
+          line-height: 1.4;
+        }
+
+        .save-form-row {
+          display: flex;
+          gap: 10px;
+        }
+
+        .save-form-row input {
+          flex: 1;
+          width: 100%;
+          box-sizing: border-box;
+          background: rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #fff;
+          padding: 10px;
+          font-size: 0.75rem;
+          border-radius: 2px;
+        }
+
+        .save-form-row input:focus {
+          outline: none;
+          border-color: #d4af37;
+        }
+
+        .save-form-row button {
+          background: #d4af37;
+          color: #000;
+          border: none;
+          padding: 10px 16px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .save-form-row button:hover {
+          opacity: 0.9;
+        }
+
+        .save-success-msg {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.75rem;
+          color: #d4af37;
+          padding: 10px 0;
+          line-height: 1.4;
+          text-align: center;
+        }
+
+        .save-error-msg {
+          font-size: 0.7rem;
+          color: #ef4444;
+          margin-top: 0;
+          margin-bottom: 8px;
+        }
+
         /* Cart Footer Styles */
         .cart-footer {
-          padding: 24px 30px 36px 30px;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          background: rgba(0, 0, 0, 0.5);
+          padding: 12px 20px 16px 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.04);
+          background: #050505;
           display: flex;
           flex-direction: column;
-          gap: 15px;
+          gap: 8px;
           flex-shrink: 0;
         }
 
         .summary-row {
           display: flex;
           justify-content: space-between;
-          font-size: 1rem;
-          color: rgba(255, 255, 255, 0.7);
+          font-size: 0.72rem;
+          color: rgba(255, 255, 255, 0.45);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+
+        .summary-row span:last-child {
+          color: rgba(255, 255, 255, 0.85);
+          font-weight: 400;
         }
 
         .total-price {
           font-family: var(--font-serif);
-          font-size: 1.35rem;
-          color: #fff;
+          font-size: 1.2rem;
+          color: #d4af37;
           font-weight: 300;
         }
 
         .tax-shipping-info {
-          font-size: 0.7rem;
-          color: rgba(255, 255, 255, 0.35);
+          font-size: 0.6rem;
+          color: rgba(255, 255, 255, 0.3);
           margin: 0;
+          text-align: center;
+          letter-spacing: 0.02em;
         }
 
         .checkout-btn {
-          background: #d4af37;
+          background: #fff;
           color: #000;
-          border: none;
-          padding: 14px;
-          font-size: 0.8rem;
+          border: 1px solid #fff;
+          padding: 13px;
+          font-size: 0.75rem;
           font-weight: 600;
           letter-spacing: 0.15em;
           text-transform: uppercase;
-          border-radius: 2px;
+          border-radius: 4px;
           cursor: pointer;
-          transition: opacity 0.2s;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           text-align: center;
           width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
         }
 
         .checkout-btn:hover:not(:disabled) {
-          opacity: 0.95;
+          background: transparent;
+          color: #d4af37;
+          border-color: #d4af37;
+          box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15);
+        }
+
+        .checkout-btn:active:not(:disabled) {
+          transform: scale(0.99);
         }
 
         .checkout-btn:disabled {
-          opacity: 0.6;
+          opacity: 0.5;
           cursor: not-allowed;
         }
 
         .clear-cart-btn {
           background: transparent;
           border: none;
-          color: rgba(255, 255, 255, 0.3);
-          font-size: 0.65rem;
+          color: rgba(255, 255, 255, 0.25);
+          font-size: 0.55rem;
           text-transform: uppercase;
-          letter-spacing: 0.15em;
+          letter-spacing: 0.12em;
           cursor: pointer;
-          transition: color 0.2s;
+          transition: all 0.2s ease;
           align-self: center;
-          padding: 5px;
+          padding: 2px;
+          margin-top: 4px;
         }
 
         .clear-cart-btn:hover {
-          color: rgba(255, 255, 255, 0.8);
+          color: #ef4444;
+        }
+
+        /* Promo Accordion */
+        .promo-accordion {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+          padding-bottom: 6px;
+          margin-bottom: 2px;
+        }
+
+        .promo-toggle-btn {
+          background: none;
+          border: none;
+          color: rgba(255, 255, 255, 0.45);
+          font-size: 0.68rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 6px 0;
+          cursor: pointer;
+          width: 100%;
+          font-family: inherit;
+          transition: color 0.2s;
+        }
+
+        .promo-toggle-btn:hover {
+          color: #d4af37;
+        }
+
+        .promo-collapse-content {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+          opacity: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .promo-collapse-content.expanded {
+          max-height: 80px;
+          opacity: 1;
+          padding-top: 4px;
         }
 
         .promo-form {
           display: flex;
-          gap: 10px;
-          margin-bottom: 8px;
+          gap: 6px;
           width: 100%;
         }
 
         .promo-form input {
           flex: 1;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          width: 100%;
+          box-sizing: border-box;
+          background: rgba(255, 255, 255, 0.01);
+          border: 1px solid rgba(255, 255, 255, 0.05);
           color: #fff;
-          padding: 8px 12px;
-          font-size: 0.7rem;
+          padding: 6px 10px;
+          font-size: 0.65rem;
           border-radius: 2px;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.05em;
           text-transform: uppercase;
+          font-family: inherit;
         }
 
         .promo-form input:focus {
           outline: none;
-          border-color: rgba(212, 175, 55, 0.4);
+          border-color: rgba(212, 175, 55, 0.3);
         }
 
         .promo-btn {
           background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           color: #fff;
-          padding: 8px 16px;
-          font-size: 0.65rem;
+          padding: 6px 12px;
+          font-size: 0.62rem;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.05em;
           cursor: pointer;
           transition: all 0.2s;
+          border-radius: 2px;
         }
 
         .promo-btn:hover:not(:disabled) {
@@ -1003,16 +1127,16 @@ export default function CartDrawer() {
         }
 
         .promo-error {
-          font-size: 0.7rem;
+          font-size: 0.65rem;
           color: #ef4444;
-          margin: 0 0 12px 0;
+          margin: 0 0 4px 0;
           text-align: left;
         }
 
         .promo-success {
-          font-size: 0.7rem;
+          font-size: 0.65rem;
           color: #d4af37;
-          margin: 0 0 12px 0;
+          margin: 0 0 4px 0;
           text-align: left;
           letter-spacing: 0.05em;
         }
@@ -1020,15 +1144,15 @@ export default function CartDrawer() {
         .cart-summary-totals {
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          margin: 10px 0 15px 0;
+          gap: 6px;
+          margin: 4px 0 6px 0;
           border-top: 1px solid rgba(255, 255, 255, 0.03);
-          padding-top: 15px;
+          padding-top: 8px;
         }
 
         .discount-row {
           color: #d4af37;
-          font-size: 0.95rem;
+          font-size: 0.85rem;
         }
 
         .discount-amount {
@@ -1037,7 +1161,14 @@ export default function CartDrawer() {
 
         .total-row {
           border-top: 1px solid rgba(255, 255, 255, 0.03);
-          padding-top: 10px;
+          padding-top: 6px;
+          margin-top: 2px;
+        }
+
+        .total-row span:first-child {
+          font-weight: 500;
+          color: #fff;
+          font-size: 0.85rem;
         }
       `}</style>
     </>

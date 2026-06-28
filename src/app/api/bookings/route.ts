@@ -1,5 +1,4 @@
-import { readJSON, writeJSON } from '@/lib/dataStore';
-import { v4 as uuidv4 } from 'uuid';
+import { bookingService } from '@/services/bookingService';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,20 +11,16 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Missing required booking fields' }, { status: 400 });
     }
 
-    const bookings = readJSON<any[]>('bookings.json');
-    const newBooking = {
-      id: `BKG-${uuidv4().slice(0, 8).toUpperCase()}`,
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+    const newBooking = await bookingService.create({
+      name,
+      email,
       location,
-      message: message?.trim() || '',
-      status: 'Pending',
-      created_at: new Date().toISOString(),
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    };
+      message: message || ''
+    });
 
-    bookings.push(newBooking);
-    writeJSON('bookings.json', bookings);
+    if (!newBooking) {
+      return Response.json({ error: 'Failed to record booking' }, { status: 500 });
+    }
 
     return Response.json(newBooking, { status: 201 });
   } catch (error) {

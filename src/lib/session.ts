@@ -2,6 +2,9 @@ import { SessionOptions } from 'iron-session';
 
 export interface SessionData {
   isAdmin: boolean;
+  customerId?: string;
+  customerEmail?: string;
+  customerName?: string;
 }
 
 export const defaultSession: SessionData = {

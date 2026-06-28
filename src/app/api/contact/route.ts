@@ -1,5 +1,4 @@
-import { readJSON, writeJSON } from '@/lib/dataStore';
-import { v4 as uuidv4 } from 'uuid';
+import { inquiryService } from '@/services/inquiryService';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,20 +11,16 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Missing required inquiry fields' }, { status: 400 });
     }
 
-    const inquiries = readJSON<any[]>('inquiries.json');
-    const newInquiry = {
-      id: `INQ-${uuidv4().slice(0, 8).toUpperCase()}`,
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+    const newInquiry = await inquiryService.create({
+      name,
+      email,
       inquiryType: inquiryType || 'General',
-      message: message.trim(),
-      status: 'New',
-      created_at: new Date().toISOString(),
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    };
+      message
+    });
 
-    inquiries.push(newInquiry);
-    writeJSON('inquiries.json', inquiries);
+    if (!newInquiry) {
+      return Response.json({ error: 'Failed to record inquiry' }, { status: 500 });
+    }
 
     return Response.json(newInquiry, { status: 201 });
   } catch (error) {

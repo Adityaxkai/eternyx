@@ -1,15 +1,30 @@
-import { readJSON, writeJSON } from '@/lib/dataStore';
+import { settingsService } from '@/services/settingsService';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  return Response.json(readJSON('settings.json'));
+  try {
+    const settings = await settingsService.getAll();
+    return Response.json(settings);
+  } catch (error) {
+    console.error('Failed to get settings:', error);
+    return Response.json({ error: 'Failed to retrieve settings' }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request) {
-  const body = await request.json();
-  const settings = readJSON<any>('settings.json');
-  const updated = { ...settings, ...body };
-  writeJSON('settings.json', updated);
-  return Response.json(updated);
+  try {
+    const body = await request.json();
+    const settings = await settingsService.getAll();
+    const updated = { ...settings, ...body };
+    
+    for (const [key, val] of Object.entries(updated)) {
+      await settingsService.set(key, val);
+    }
+    
+    return Response.json(updated);
+  } catch (error) {
+    console.error('Failed to update settings:', error);
+    return Response.json({ error: 'Failed to update settings' }, { status: 500 });
+  }
 }

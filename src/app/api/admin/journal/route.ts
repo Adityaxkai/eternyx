@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { readJSON, writeJSON } from '@/lib/dataStore';
+import { journalService } from '@/services/journalService';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +13,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const posts = readJSON<any[]>('journal.json');
-  return NextResponse.json(posts);
+  try {
+    const posts = await journalService.getAll(true); // Include drafts for admin
+    return NextResponse.json(posts);
+  } catch (error) {
+    console.error('Failed to get journal entries:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -33,31 +38,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const posts = readJSON<any[]>('journal.json');
-    
-    const newId = `JRN-${Math.floor(100000 + Math.random() * 900000)}`;
-    const formattedDate = new Date().toLocaleDateString('en-US', {
-      month: 'short',
-      day: '2-digit',
-      year: 'numeric'
-    });
-
-    const newPost = {
-      id: newId,
+    const newPost = await journalService.create({
       title,
       author,
-      date: formattedDate,
+      date: new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric'
+      }),
       excerpt,
       content,
       category,
       status: status || 'Draft'
-    };
+    });
 
-    posts.push(newPost);
-    writeJSON('journal.json', posts);
+    if (!newPost) {
+      return NextResponse.json({ error: 'Failed to create article record' }, { status: 500 });
+    }
 
     return NextResponse.json(newPost, { status: 201 });
   } catch (error) {
+    console.error('Failed to create journal article:', error);
     return NextResponse.json({ error: 'Failed to create article' }, { status: 400 });
   }
 }

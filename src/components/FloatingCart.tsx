@@ -2,9 +2,11 @@
 
 import { useCart } from '@/context/CartContext';
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import gsap from 'gsap';
 
 export default function FloatingCart() {
+  const pathname = usePathname();
   const { cartCount, setIsCartOpen } = useCart();
   const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -170,6 +172,8 @@ export default function FloatingCart() {
     };
   }, [mounted]);
 
+  if (pathname === '/checkout') return null;
+
   // Safe client-side count defaults
   const displayCount = mounted ? cartCount : 0;
 
@@ -207,7 +211,7 @@ export default function FloatingCart() {
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          z-index: 999;
+          z-index: 100000;
           box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 175, 55, 0.12);
           transition: border-color 0.3s ease, background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
           animation: ambientBreathe 4s ease-in-out infinite;

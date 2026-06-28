@@ -1,23 +1,32 @@
-import { readJSON, writeJSON } from '@/lib/dataStore';
+import { bookingService } from '@/services/bookingService';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const body = await request.json();
-  const bookings = readJSON<any[]>('bookings.json');
-  const idx = bookings.findIndex((b) => b.id === id);
-  if (idx === -1) return Response.json({ error: 'Not found' }, { status: 404 });
-  bookings[idx] = { ...bookings[idx], ...body };
-  writeJSON('bookings.json', bookings);
-  return Response.json(bookings[idx]);
+  try {
+    const body = await request.json();
+    const updated = await bookingService.update(id, body);
+    if (!updated) {
+      return Response.json({ error: 'Booking not found' }, { status: 404 });
+    }
+    return Response.json(updated);
+  } catch (error) {
+    console.error(`Failed to update booking ${id}:`, error);
+    return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const bookings = readJSON<any[]>('bookings.json');
-  const filtered = bookings.filter((b) => b.id !== id);
-  if (filtered.length === bookings.length) return Response.json({ error: 'Not found' }, { status: 404 });
-  writeJSON('bookings.json', filtered);
-  return Response.json({ success: true });
+  try {
+    const deleted = await bookingService.delete(id);
+    if (!deleted) {
+      return Response.json({ error: 'Booking not found' }, { status: 404 });
+    }
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error(`Failed to delete booking ${id}:`, error);
+    return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }

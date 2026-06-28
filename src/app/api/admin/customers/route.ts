@@ -1,14 +1,13 @@
-import { readJSON } from '@/lib/dataStore';
+import { customerService } from '@/services/customerService';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const customers = readJSON<any[]>('customers.json');
-  const orders = readJSON<any[]>('orders.json');
-  const enriched = customers.map((c) => {
-    const customerOrders = orders.filter((o) => o.customer_id === c.id);
-    const totalSpend = customerOrders.reduce((sum, o) => sum + o.total, 0);
-    return { ...c, order_count: customerOrders.length, total_spend: totalSpend };
-  });
-  return Response.json(enriched);
+  try {
+    const enriched = await customerService.getAll();
+    return Response.json(enriched);
+  } catch (error) {
+    console.error('Failed to get customers:', error);
+    return Response.json({ error: 'Failed to retrieve customers' }, { status: 500 });
+  }
 }

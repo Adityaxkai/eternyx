@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { sessionOptions, SessionData } from '@/lib/session';
-import { readJSON, writeJSON } from '@/lib/dataStore';
+import { reviewService } from '@/services/reviewService';
 
 export async function PATCH(
   request: NextRequest,
@@ -17,20 +17,13 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const reviews = readJSON<any[]>('reviews.json');
-    
-    const index = reviews.findIndex((r) => r.id === id);
-    if (index === -1) {
+    const updated = await reviewService.update(id, body);
+    if (!updated) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });
     }
-
-    if (body.status) {
-      reviews[index].status = body.status;
-    }
-
-    writeJSON('reviews.json', reviews);
-    return NextResponse.json(reviews[index]);
+    return NextResponse.json(updated);
   } catch (error) {
+    console.error(`Failed to update review ${id}:`, error);
     return NextResponse.json({ error: 'Failed to update review' }, { status: 400 });
   }
 }

@@ -1,4 +1,4 @@
-import { readJSON } from '@/lib/dataStore';
+import { discountService } from '@/services/discountService';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,11 +8,7 @@ export async function GET(
 ) {
   try {
     const { code } = await params;
-    const cleanCode = code.toUpperCase().trim();
-
-    // Read discounts from JSON data store
-    const discounts = readJSON<any[]>('discounts.json');
-    const discount = discounts.find((d) => d.code === cleanCode);
+    const discount = await discountService.getByCode(code);
 
     if (!discount) {
       return Response.json({ error: 'Invalid promo code' }, { status: 404 });
@@ -22,7 +18,6 @@ export async function GET(
       return Response.json({ error: 'This promo code has expired' }, { status: 400 });
     }
 
-    // Return key discount info
     return Response.json({
       id: discount.id,
       code: discount.code,

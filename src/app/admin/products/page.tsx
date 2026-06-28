@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Product } from '@/services/productService';
+import { Product } from '@/lib/types';
 import Image from 'next/image';
 
 export default function ProductsPage() {
@@ -18,9 +18,10 @@ export default function ProductsPage() {
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formPrice, setFormPrice] = useState(180);
-  const [formCategory, setFormCategory] = useState('Eau de Parfum');
+  const [formCategory, setFormCategory] = useState('MENS');
   const [formVolume, setFormVolume] = useState('100 ml');
   const [formImageUrl, setFormImageUrl] = useState('');
+  const [formAdditionalImages, setFormAdditionalImages] = useState<string[]>([]);
   const [formBadge, setFormBadge] = useState('');
   const [formVisible, setFormVisible] = useState(true);
 
@@ -104,9 +105,10 @@ export default function ProductsPage() {
       setFormName(product.name);
       setFormDescription(product.description || '');
       setFormPrice(product.price);
-      setFormCategory(product.category || '');
+      setFormCategory((product.category || 'MENS').toUpperCase().trim());
       setFormVolume(product.volume || '100 ml');
       setFormImageUrl(product.image_url || '');
+      setFormAdditionalImages(product.additional_images || []);
       setFormBadge(product.badge || '');
       setFormVisible(product.visible);
     } else {
@@ -114,9 +116,10 @@ export default function ProductsPage() {
       setFormName('');
       setFormDescription('');
       setFormPrice(180);
-      setFormCategory('Eau de Parfum');
+      setFormCategory('MENS');
       setFormVolume('100 ml');
       setFormImageUrl('');
+      setFormAdditionalImages([]);
       setFormBadge('');
       setFormVisible(true);
     }
@@ -151,6 +154,33 @@ export default function ProductsPage() {
     }
   };
 
+  const handleAdditionalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFormAdditionalImages(prev => [...prev, data.url]);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Upload error.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName || !formPrice || !formImageUrl) {
@@ -166,6 +196,7 @@ export default function ProductsPage() {
       category: formCategory,
       volume: formVolume,
       image_url: formImageUrl,
+      additional_images: formAdditionalImages,
       badge: formBadge || undefined,
       visible: formVisible,
     };
@@ -245,7 +276,7 @@ export default function ProductsPage() {
                         </div>
                         <div className="td col-image">
                           {product.image_url ? (
-                            <img src={product.image_url} alt={product.name} className="row-img" />
+                            <img src={product.image_url} alt={product.name} className="row-img" referrerPolicy="no-referrer" />
                           ) : (
                             <div className="row-img-placeholder"></div>
                           )}
@@ -312,13 +343,20 @@ export default function ProductsPage() {
             <div className="form-row">
               <div className="form-group">
                 <label>Category</label>
-                <input 
-                  type="text" 
+                <select 
                   value={formCategory} 
                   onChange={(e) => setFormCategory(e.target.value)} 
-                  placeholder="e.g. Eau de Parfum"
                   required
-                />
+                >
+                  <option value="MENS" style={{ background: '#0d0d0d', color: '#fff' }}>MENS</option>
+                  <option value="UNISEX" style={{ background: '#0d0d0d', color: '#fff' }}>UNISEX</option>
+                  <option value="WOMEN" style={{ background: '#0d0d0d', color: '#fff' }}>WOMEN</option>
+                  <option value="BESTSELLER" style={{ background: '#0d0d0d', color: '#fff' }}>BESTSELLER</option>
+                  <option value="EAU DE PARFUM" style={{ background: '#0d0d0d', color: '#fff' }}>EAU DE PARFUM</option>
+                  <option value="LUXURY BLEND" style={{ background: '#0d0d0d', color: '#fff' }}>LUXURY BLEND</option>
+                  <option value="LIMITED EDITION" style={{ background: '#0d0d0d', color: '#fff' }}>LIMITED EDITION</option>
+                  <option value="SIGNATURE SCENT" style={{ background: '#0d0d0d', color: '#fff' }}>SIGNATURE SCENT</option>
+                </select>
               </div>
 
               <div className="form-group">
@@ -380,7 +418,7 @@ export default function ProductsPage() {
                   {uploading ? (
                     <span className="spinner">Uploading...</span>
                   ) : formImageUrl ? (
-                    <img src={formImageUrl} alt="Preview" className="upload-preview" />
+                    <img src={formImageUrl} alt="Preview" className="upload-preview" referrerPolicy="no-referrer" />
                   ) : (
                     <span className="upload-placeholder">Click to upload image</span>
                   )}
@@ -388,6 +426,36 @@ export default function ProductsPage() {
                 {formImageUrl && (
                   <p className="image-url-text">URL: {formImageUrl}</p>
                 )}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Additional Images</label>
+              <div className="additional-images-list">
+                {formAdditionalImages.map((url, idx) => (
+                  <div key={idx} className="additional-image-item">
+                    <img src={url} alt={`Additional ${idx + 1}`} className="additional-preview-thumb" referrerPolicy="no-referrer" />
+                    <button 
+                      type="button" 
+                      onClick={() => setFormAdditionalImages(prev => prev.filter((_, i) => i !== idx))}
+                      className="delete-img-btn"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  onChange={handleAdditionalImageUpload}
+                  id="additional-images-upload" 
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="additional-images-upload" className="additional-upload-box">
+                  + Add Images
+                </label>
               </div>
             </div>
 
@@ -694,6 +762,7 @@ export default function ProductsPage() {
         }
 
         .form-group input,
+        .form-group select,
         .form-group textarea {
           background: rgba(255, 255, 255, 0.02);
           border: 1px solid rgba(255, 255, 255, 0.08);
@@ -706,6 +775,7 @@ export default function ProductsPage() {
         }
 
         .form-group input:focus,
+        .form-group select:focus,
         .form-group textarea:focus {
           outline: none;
           border-color: #d4af37;
@@ -759,6 +829,70 @@ export default function ProductsPage() {
           align-items: center;
           padding: 10px 0;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .additional-images-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-top: 4px;
+        }
+
+        .additional-image-item {
+          position: relative;
+          width: 80px;
+          height: 80px;
+          border-radius: 4px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: #000;
+        }
+
+        .additional-preview-thumb {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .delete-img-btn {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.7);
+          color: #ef4444;
+          border: none;
+          font-size: 0.65rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          opacity: 0;
+          cursor: pointer;
+          transition: opacity 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .additional-image-item:hover .delete-img-btn {
+          opacity: 1;
+        }
+
+        .additional-upload-box {
+          width: 80px;
+          height: 80px;
+          border: 1px dashed rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.7rem;
+          color: rgba(255, 255, 255, 0.4);
+          cursor: pointer;
+          transition: border-color 0.2s;
+          background: rgba(255, 255, 255, 0.01);
+        }
+
+        .additional-upload-box:hover {
+          border-color: #d4af37;
+          color: #fff;
         }
 
         .submit-btn {

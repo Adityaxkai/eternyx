@@ -1,11 +1,13 @@
-import { readJSON, writeJSON } from '@/lib/dataStore';
+import { inquiryService } from '@/services/inquiryService';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const inquiries = readJSON<any[]>('inquiries.json');
-  // Sort newest first
-  return Response.json(
-    [...inquiries].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-  );
+  try {
+    const inquiries = await inquiryService.getAll();
+    return Response.json(inquiries);
+  } catch (error) {
+    console.error('Failed to get inquiries:', error);
+    return Response.json({ error: 'Failed to retrieve inquiries' }, { status: 500 });
+  }
 }

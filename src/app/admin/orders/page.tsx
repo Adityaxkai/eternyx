@@ -33,6 +33,10 @@ interface Order {
     orders: number;
     lastActive: string;
   } | null;
+  shipping_carrier?: string | null;
+  shipping_tracking_id?: string | null;
+  shipping_label_url?: string | null;
+  shipping_cost?: number | null;
   created_at: string;
 }
 
@@ -45,6 +49,145 @@ export default function OrdersPage() {
   // Detail Drawer States
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // iCarry logistics states
+  const [weightGrams, setWeightGrams] = useState<number>(250);
+  const [shipmentMode, setShipmentMode] = useState<'E' | 'S'>('E');
+  const [rates, setRates] = useState<any[]>([]);
+  const [selectedRate, setSelectedRate] = useState<any | null>(null);
+  const [ratesLoading, setRatesLoading] = useState(false);
+  const [ratesError, setRatesError] = useState('');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+  const [trackingInfo, setTrackingInfo] = useState<any | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+
+  // Synchronize state when selectedOrder changes in details drawer
+  useEffect(() => {
+    if (selectedOrder) {
+      // Calculate default package weight based on scent manifest items
+      let defaultWeight = 0;
+      selectedOrder.items?.forEach((item) => {
+        const qty = item.quantity || 1;
+        const sizeLower = (item.size || '').toLowerCase();
+        if (sizeLower.includes('100ml') || sizeLower.includes('100 ml')) {
+          defaultWeight += 250 * qty;
+        } else if (sizeLower.includes('50ml') || sizeLower.includes('50 ml')) {
+          defaultWeight += 150 * qty;
+        } else {
+          defaultWeight += 200 * qty;
+        }
+      });
+      
+      setWeightGrams(defaultWeight || 250);
+      setShipmentMode('E');
+      setRates([]);
+      setSelectedRate(null);
+      setRatesError('');
+      setRatesLoading(false);
+      setBookingLoading(false);
+      setBookingError('');
+      
+      // If tracking ID is present, fetch checkpoints timeline from iCarry API
+      if (selectedOrder.shipping_tracking_id) {
+        fetchTracking(selectedOrder.shipping_tracking_id);
+      } else {
+        setTrackingInfo(null);
+      }
+    }
+  }, [selectedOrder]);
+
+  const fetchRates = async () => {
+    if (!selectedOrder) return;
+    setRatesLoading(true);
+    setRatesError('');
+    setRates([]);
+    setSelectedRate(null);
+    try {
+      const res = await fetch('/api/admin/icarry/estimate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: selectedOrder.id,
+          weightGrams,
+          shipmentMode,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRates(data.rates || []);
+        if (data.rates && data.rates.length > 0) {
+          setSelectedRate(data.rates[0]);
+        }
+      } else {
+        setRatesError(data.error || 'Failed to calculate rates.');
+      }
+    } catch (err) {
+      console.error(err);
+      setRatesError('Error calculating shipping rates.');
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  const bookCourier = async () => {
+    if (!selectedOrder || !selectedRate) return;
+    setBookingLoading(true);
+    setBookingError('');
+    try {
+      const res = await fetch('/api/admin/icarry/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: selectedOrder.id,
+          weightGrams,
+          shipmentMode,
+          courierId: selectedRate.courier_id,
+          courierName: selectedRate.courier_name,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // Refresh local orders list
+        fetchOrders();
+        // Keep the drawer view synchronized
+        setSelectedOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'Shipped',
+                shipping_carrier: data.booking.carrier,
+                shipping_tracking_id: data.booking.tracking_id,
+                shipping_label_url: data.booking.label_url,
+                shipping_cost: data.booking.cost,
+              }
+            : null
+        );
+      } else {
+        setBookingError(data.error || 'Courier booking failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      setBookingError('Error booking shipping carrier.');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const fetchTracking = async (awb: string) => {
+    setTrackingLoading(true);
+    try {
+      const res = await fetch(`/api/admin/icarry/track?tracking_id=${awb}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTrackingInfo(data.tracking);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -170,7 +313,7 @@ export default function OrdersPage() {
                 </div>
                 <div className="col-date">{order.date}</div>
                 <div className="col-items">{order.items_count} items</div>
-                <div className="col-total">${order.total.toFixed(2)}</div>
+                <div className="col-total">${Number(order.total).toFixed(2)}</div>
                 <div className="col-status">
                   <span className={`status-badge ${order.status.toLowerCase()}`}>
                     {order.status}
@@ -252,6 +395,144 @@ export default function OrdersPage() {
                 </div>
               </div>
 
+              {/* iCarry Logistics Fulfillment Panel */}
+              <div className="info-card shipping-fulfillment-card">
+                <h3>iCarry Logistics Fulfillment</h3>
+                
+                {selectedOrder.shipping_tracking_id ? (
+                  /* Shipped View showing tracking timeline and print options */
+                  <div className="shipped-status-details">
+                    <div className="logistic-row">
+                      <p className="info-label">Courier Carrier</p>
+                      <p className="info-val"><strong>{selectedOrder.shipping_carrier}</strong></p>
+                    </div>
+                    <div className="logistic-row" style={{ marginTop: '10px' }}>
+                      <p className="info-label">Tracking Number (AWB)</p>
+                      <p className="info-val" style={{ fontFamily: 'monospace', color: '#d4af37' }}>
+                        {selectedOrder.shipping_tracking_id}
+                      </p>
+                    </div>
+                    {selectedOrder.shipping_cost && (
+                      <div className="logistic-row" style={{ marginTop: '10px' }}>
+                        <p className="info-label">Actual Shipping Cost</p>
+                        <p className="info-val">₹{Number(selectedOrder.shipping_cost).toFixed(2)}</p>
+                      </div>
+                    )}
+                    
+                    <div className="fulfillment-actions-row" style={{ marginTop: '15px' }}>
+                      <a 
+                        href={selectedOrder.shipping_label_url || '#'} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="print-label-btn"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '6px' }}>
+                          <polyline points="6 9 6 2 18 2 18 9" />
+                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                          <rect x="6" y="14" width="12" height="8" />
+                        </svg>
+                        Print Shipping Label
+                      </a>
+                    </div>
+                    
+                    {/* Live Tracking Timeline */}
+                    <div className="tracking-timeline-box" style={{ marginTop: '20px' }}>
+                      <h4>Live Delivery Progress</h4>
+                      {trackingLoading ? (
+                        <p className="tracking-loading">Updating checkpoints...</p>
+                      ) : trackingInfo && trackingInfo.checkpoints && trackingInfo.checkpoints.length > 0 ? (
+                        <div className="timeline-list">
+                          {trackingInfo.checkpoints.map((cp: any, index: number) => (
+                            <div key={index} className="timeline-node">
+                              <div className="node-marker" />
+                              <div className="node-content">
+                                <p className="node-desc">{cp.description}</p>
+                                <p className="node-meta">{cp.time} — {cp.location}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="tracking-loading">Package booked. Awaiting tracking logs.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Fulfillment Booking Form */
+                  <div className="fulfillment-form">
+                    <div className="form-row">
+                      <div className="form-group half">
+                        <label htmlFor="ful-weight">Weight (Grams)</label>
+                        <input 
+                          id="ful-weight"
+                          type="number" 
+                          value={weightGrams} 
+                          onChange={(e) => setWeightGrams(Number(e.target.value) || 250)}
+                          placeholder="250"
+                        />
+                      </div>
+                      <div className="form-group half">
+                        <label htmlFor="ful-mode">Shipment Mode</label>
+                        <select 
+                          id="ful-mode"
+                          value={shipmentMode} 
+                          onChange={(e) => setShipmentMode(e.target.value as 'E' | 'S')}
+                        >
+                          <option value="E">Express (Air)</option>
+                          <option value="S">Surface (Ground)</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      type="button" 
+                      className="calc-rates-btn" 
+                      onClick={fetchRates}
+                      disabled={ratesLoading}
+                    >
+                      {ratesLoading ? 'Calculating Courier Rates...' : 'Calculate Delivery Rates'}
+                    </button>
+                    
+                    {ratesError && <p className="rates-error-msg">{ratesError}</p>}
+                    
+                    {rates.length > 0 && (
+                      <div className="rates-selection-box" style={{ marginTop: '15px' }}>
+                        <label>Select Courier Service</label>
+                        <div className="rates-list">
+                          {rates.map((r, i) => (
+                            <label key={i} className={`rate-option-item ${selectedRate?.courier_id === r.courier_id ? 'selected' : ''}`}>
+                              <input 
+                                type="radio" 
+                                name="courier_rate" 
+                                checked={selectedRate?.courier_id === r.courier_id}
+                                onChange={() => setSelectedRate(r)}
+                                style={{ display: 'none' }}
+                              />
+                              <div className="rate-details">
+                                <span className="rate-carrier">{r.courier_name}</span>
+                                <span className="rate-time">{r.expected_days} ({r.mode})</span>
+                              </div>
+                              <span className="rate-price">₹{r.shipping_cost.toFixed(2)}</span>
+                            </label>
+                          ))}
+                        </div>
+                        
+                        {bookingError && <p className="booking-error-msg">{bookingError}</p>}
+                        
+                        <button 
+                          type="button" 
+                          className="book-courier-btn" 
+                          onClick={bookCourier}
+                          disabled={bookingLoading || !selectedRate}
+                        >
+                          {bookingLoading ? 'Assigning Courier Partner...' : `Book Shipping Partner`}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Items List */}
               <div className="info-card">
                 <h3>Scent Manifest</h3>
@@ -281,7 +562,7 @@ export default function OrdersPage() {
                 )}
                 <div className="breakdown-row grand-total">
                   <span>Grand Total Paid:</span>
-                  <strong>${selectedOrder.total.toFixed(2)}</strong>
+                  <strong>${Number(selectedOrder.total).toFixed(2)}</strong>
                 </div>
               </div>
             </div>
@@ -675,6 +956,242 @@ export default function OrdersPage() {
           color: #d4af37;
           font-family: var(--font-serif);
           font-size: 1.25rem;
+        }
+
+        /* iCarry Shipping Fulfillment Styles */
+        .shipping-fulfillment-card {
+          border-color: rgba(212, 175, 55, 0.3);
+          background: rgba(212, 175, 55, 0.01);
+        }
+        
+        .shipped-status-details {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .logistic-row {
+          display: flex;
+          justify-content: space-between;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+          padding-bottom: 8px;
+        }
+        
+        .print-label-btn {
+          display: inline-flex;
+          align-items: center;
+          background: #d4af37;
+          color: #000;
+          padding: 8px 16px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          text-decoration: none;
+          border-radius: 2px;
+          transition: opacity 0.2s;
+        }
+
+        .print-label-btn:hover {
+          opacity: 0.9;
+        }
+        
+        .tracking-timeline-box h4 {
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 12px;
+        }
+        
+        .timeline-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          border-left: 1px solid rgba(212, 175, 55, 0.2);
+          padding-left: 16px;
+          margin-left: 6px;
+        }
+        
+        .timeline-node {
+          position: relative;
+        }
+        
+        .node-marker {
+          position: absolute;
+          left: -21px;
+          top: 4px;
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background: #d4af37;
+          box-shadow: 0 0 6px #d4af37;
+        }
+        
+        .node-content {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .node-desc {
+          font-size: 0.8rem;
+          color: #fff;
+          margin: 0;
+          font-weight: 500;
+        }
+        
+        .node-meta {
+          font-size: 0.65rem;
+          color: rgba(255, 255, 255, 0.4);
+          margin: 2px 0 0 0;
+        }
+        
+        .tracking-loading {
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.4);
+          font-style: italic;
+          margin: 0;
+        }
+
+        .fulfillment-form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .form-row {
+          display: flex;
+          gap: 10px;
+        }
+        
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        
+        .form-group.half {
+          flex: 1;
+        }
+        
+        .form-group label {
+          font-size: 0.6rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .form-group input, .form-group select {
+          background: #111;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #fff;
+          padding: 8px 12px;
+          border-radius: 4px;
+          font-size: 0.75rem;
+          font-family: inherit;
+        }
+        
+        .calc-rates-btn {
+          background: transparent;
+          border: 1px solid #d4af37;
+          color: #d4af37;
+          padding: 10px;
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-weight: 600;
+          cursor: pointer;
+          border-radius: 2px;
+          transition: all 0.2s;
+        }
+        
+        .calc-rates-btn:hover {
+          background: #d4af37;
+          color: #000;
+        }
+        
+        .rates-error-msg, .booking-error-msg {
+          font-size: 0.7rem;
+          color: #ef4444;
+          margin: 4px 0 0 0;
+        }
+        
+        .rates-selection-box label {
+          font-size: 0.6rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.4);
+          margin-bottom: 8px;
+          display: block;
+        }
+        
+        .rates-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        
+        .rate-option-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px;
+          background: rgba(255, 255, 255, 0.01);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .rate-option-item:hover {
+          border-color: rgba(212, 175, 55, 0.3);
+          background: rgba(212, 175, 55, 0.02);
+        }
+        
+        .rate-option-item.selected {
+          border-color: #d4af37;
+          background: rgba(212, 175, 55, 0.05);
+        }
+        
+        .rate-details {
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .rate-carrier {
+          font-size: 0.8rem;
+          color: #fff;
+          font-weight: 500;
+        }
+        
+        .rate-time {
+          font-size: 0.65rem;
+          color: rgba(255, 255, 255, 0.4);
+          margin-top: 2px;
+        }
+        
+        .rate-price {
+          font-size: 0.85rem;
+          color: #d4af37;
+          font-weight: 600;
+        }
+        
+        .book-courier-btn {
+          width: 100%;
+          background: #d4af37;
+          color: #000;
+          border: none;
+          padding: 12px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-radius: 2px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+        
+        .book-courier-btn:hover {
+          opacity: 0.95;
         }
       `}</style>
     </div>

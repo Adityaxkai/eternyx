@@ -1,4 +1,6 @@
-import { readJSON, writeJSON } from '@/lib/dataStore';
+import { orderService } from '@/services/orderService';
+import { customerService } from '@/services/customerService';
+import { discountService } from '@/services/discountService';
 import { v4 as uuidv4 } from 'uuid';
 
 export const dynamic = 'force-dynamic';
@@ -6,20 +8,8 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    let orders = readJSON<any[]>('orders.json');
-    
-    if (status && status !== 'all') {
-      orders = orders.filter((o) => o.status.toLowerCase() === status.toLowerCase());
-    }
-    
-    // Enrich with customer names
-    const customers = readJSON<any[]>('customers.json');
-    orders = orders.map((o) => ({
-      ...o,
-      customer: customers.find((c) => c.id === o.customer_id) || null,
-    }));
-    
+    const status = searchParams.get('status') || undefined;
+    const orders = await orderService.getAll(status);
     return Response.json(orders);
   } catch (e) {
     console.error('Failed to get orders:', e);
@@ -37,54 +27,36 @@ export async function POST(request: Request) {
     }
 
     // 1. Process Customer profile
-    const customers = readJSON<any[]>('customers.json');
-    let customer = customers.find((c) => c.email.toLowerCase() === email.toLowerCase().trim());
-
+    const customer = await customerService.createOrUpdate(email, name, Number(total));
     if (!customer) {
-      customer = {
-        id: `cust-${uuidv4().slice(0, 8)}`,
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
-        spent: Number(total),
-        orders: 1,
-        lastActive: 'Today'
-      };
-      customers.push(customer);
-    } else {
-      customer.spent = Number((customer.spent + Number(total)).toFixed(2));
-      customer.orders += 1;
-      customer.lastActive = 'Today';
+      return Response.json({ error: 'Failed to process customer profile' }, { status: 500 });
     }
-    writeJSON('customers.json', customers);
 
     // 2. Process Discount Code increment
     if (discountCode) {
-      const discounts = readJSON<any[]>('discounts.json');
-      const discount = discounts.find(d => d.code === discountCode.toUpperCase().trim());
+      const discount = await discountService.getByCode(discountCode);
       if (discount) {
-        discount.usage_count = (discount.usage_count || 0) + 1;
-        writeJSON('discounts.json', discounts);
+        await discountService.incrementUsage(discountCode);
       }
     }
 
     // 3. Process Order creation
-    const orders = readJSON<any[]>('orders.json');
     const orderId = `ORD-${uuidv4().slice(0, 8).toUpperCase()}`;
-    const newOrder = {
+    const newOrder = await orderService.create({
       id: orderId,
       customer_id: customer.id,
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      customer_name: name.trim(),
+      customer_email: email.toLowerCase().trim(),
       total: Number(total),
       status: 'Pending',
-      items_count: items.reduce((sum, item) => sum + item.quantity, 0),
       items,
       shipping_address: address,
       discount_code: discountCode || null,
-      created_at: new Date().toISOString()
-    };
+    });
 
-    orders.push(newOrder);
-    writeJSON('orders.json', orders);
+    if (!newOrder) {
+      return Response.json({ error: 'Failed to create order record' }, { status: 500 });
+    }
 
     return Response.json(newOrder, { status: 201 });
   } catch (error) {

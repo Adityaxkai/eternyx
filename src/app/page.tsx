@@ -12,9 +12,40 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, Draggable);
 }
 
+function TextReveal({ text, className = '' }: { text: string; className?: string }) {
+  if (!text) return null;
+  return (
+    <span className={`scroll-reveal-text ${className}`}>
+      {text.split(' ').map((word, wordIdx) => (
+        <span key={wordIdx} className="text-reveal-mask" style={{ marginRight: '0.22em' }}>
+          <span className="text-reveal-word text-reveal-trigger-item">
+            {word}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function CharacterReveal({ text, className = '' }: { text: string; className?: string }) {
+  if (!text) return null;
+  return (
+    <span className={`scroll-reveal-chars ${className}`} style={{ display: 'inline-flex', flexWrap: 'wrap' }}>
+      {text.split('').map((char, charIdx) => (
+        <span key={charIdx} className="text-reveal-mask" style={{ display: 'inline-block' }}>
+          <span className="text-reveal-word char-reveal-trigger-item" style={{ display: 'inline-block', whiteSpace: 'pre' }}>
+            {char}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function Home() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [activeTab, setActiveTab] = useState('');
   const { addToCart } = useCart();
   const duoRef = useRef<HTMLDivElement>(null);
   const alchemyRef = useRef<HTMLDivElement>(null);
@@ -76,6 +107,7 @@ export default function Home() {
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           const mapped = data.map((p: any) => ({
+            ...p,
             name: p.name,
             category: p.category,
             price: typeof p.price === 'number' ? `$${p.price}` : p.price,
@@ -103,14 +135,14 @@ export default function Home() {
       .catch(err => console.error('Failed to fetch reels:', err));
   }, []);
 
+
+
   // GSAP animation bindings
   useEffect(() => {
-    // Show last slide first on mobile viewports
     if (typeof window !== "undefined" && window.innerWidth <= 768 && banners.length > 0) {
       setCurrentBanner(banners.length - 1);
     }
 
-    // Banner Timer
     const timer = setInterval(() => {
       if (banners.length > 0) {
         setCurrentBanner((prev) => (prev + 1) % banners.length);
@@ -118,70 +150,170 @@ export default function Home() {
     }, 5000);
 
     const ctx = gsap.context(() => {
-      // Entrance Animation for Hero Text
-      gsap.fromTo(heroContentRef.current, 
-        { x: -200, opacity: 0 },
-        { x: 0, opacity: 1, duration: 1.5, ease: "expo.in", delay: 0.6 }
+      // 1. Entrance animation for Hero Content Text Subtitle & Title letters
+      gsap.fromTo('.hero-subtitle', 
+        { opacity: 0, letterSpacing: '0.1em' },
+        { opacity: 1, letterSpacing: '0.4em', duration: 1.6, ease: "power3.out", delay: 0.3 }
       );
 
-      // Start state: Hidden
-      gsap.set(duoRef.current, { xPercent: 100, x: -100, opacity: 0 });
-      gsap.set(alchemyHeaderRef.current, { x: -100, opacity: 0 }); // Hidden to the left
-
-      let isShowing = false;
-
-      ScrollTrigger.create({
-        onUpdate: (self) => {
-          const direction = self.direction;
-          const scrollPos = window.scrollY;
-
-          if (direction === 1 && scrollPos > 20) {
-            if (!isShowing) {
-              isShowing = true;
-              // Simultaneous Appear on Scroll DOWN
-              gsap.to([duoRef.current, alchemyHeaderRef.current], {
-                x: 0,
-                xPercent: 0,
-                opacity: 1,
-                duration: 0.8,
-                ease: "expo.in",
-                overwrite: "auto",
-                stagger: 0.1
-              });
-            }
-          } else if (direction === -1 || scrollPos <= 20) {
-            if (isShowing || scrollPos <= 20) {
-              isShowing = false;
-              // Simultaneous Hide on Scroll UP or Top
-              gsap.to(duoRef.current, {
-                xPercent: 100,
-                x: -100,
-                opacity: 0,
-                duration: 0.6,
-                ease: "power2.out",
-                overwrite: "auto"
-              });
-              gsap.to(alchemyHeaderRef.current, {
-                x: -100,
-                opacity: 0,
-                duration: 0.6,
-                ease: "power2.out",
-                overwrite: "auto"
-              });
-            }
-          }
-        }
+      gsap.to('.hero-title-reveal .char-reveal-trigger-item', {
+        y: 0,
+        duration: 1.4,
+        stagger: 0.08,
+        ease: "power4.out",
+        delay: 0.5
       });
+
+      // 2. Parallax effect for Hero Content overlay
+      gsap.to(heroContentRef.current, {
+        scrollTrigger: {
+          trigger: ".hero",
+          start: "top top",
+          end: "bottom top",
+          scrub: true
+        },
+        yPercent: 30,
+        ease: "none"
+      });
+
+      // 3. Parallax effect for Philosophy text
+      gsap.to('.philosophy-text', {
+        scrollTrigger: {
+          trigger: '.philosophy-section',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1
+        },
+        y: -30,
+        ease: "power1.out"
+      });
+
+      // 4. Parallax effect for Brand Statement Image
+      gsap.fromTo('.brand-statement-right img',
+        { y: -30, scale: 1.12 },
+        {
+          scrollTrigger: {
+            trigger: '.brand-statement',
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: true
+          },
+          y: 30,
+          ease: "none"
+        }
+      );
+
+      // 5. Scroll triggers for text reveals (word staggers)
+      gsap.utils.toArray('.scroll-reveal-text').forEach((element: any) => {
+        gsap.to(element.querySelectorAll('.text-reveal-trigger-item'), {
+          scrollTrigger: {
+            trigger: element,
+            start: "top 85%",
+            end: "bottom top",
+            toggleActions: "play reverse play reverse"
+          },
+          y: 0,
+          duration: 1.2,
+          stagger: 0.05,
+          ease: "power3.out"
+        });
+      });
+
+      // 6. Scroll triggers for character reveals
+      gsap.utils.toArray('.scroll-reveal-chars').forEach((element: any) => {
+        gsap.to(element.querySelectorAll('.char-reveal-trigger-item'), {
+          scrollTrigger: {
+            trigger: element,
+            start: "top 85%",
+            end: "bottom top",
+            toggleActions: "play reverse play reverse"
+          },
+          y: 0,
+          duration: 1.4,
+          stagger: 0.03,
+          ease: "power4.out"
+        });
+      });
+
+      // 7. Scroll triggers for general fade items
+      gsap.utils.toArray('.scroll-fade-item').forEach((element: any) => {
+        gsap.fromTo(element,
+          { opacity: 0, y: 20 },
+          {
+            scrollTrigger: {
+              trigger: element,
+              start: "top 90%",
+              end: "bottom top",
+              toggleActions: "play reverse play reverse"
+            },
+            opacity: 1,
+            y: 0,
+            duration: 1.0,
+            ease: "power3.out"
+          }
+        );
+      });
+
+      // 8. Self-drawing gold dividers
+      gsap.utils.toArray('.scroll-draw-line').forEach((line: any) => {
+        gsap.to(line, {
+          scrollTrigger: {
+            trigger: line,
+            start: "top 90%",
+            end: "bottom top",
+            toggleActions: "play reverse play reverse"
+          },
+          scaleX: 1,
+          duration: 1.5,
+          ease: "power3.inOut"
+        });
+      });
+
+      // 9. Floating Product Duo scroll triggered entrance (reveal on reaching alchemy)
+      gsap.fromTo(duoRef.current,
+        { xPercent: 100, x: 20, opacity: 0 },
+        {
+          scrollTrigger: {
+            trigger: ".alchemy",
+            start: "top 70%",
+            end: "bottom top",
+            toggleActions: "play reverse play reverse"
+          },
+          xPercent: 0,
+          x: 0,
+          opacity: 1,
+          duration: 1.0,
+          ease: "power3.out",
+          overwrite: "auto"
+        }
+      );
+
+      gsap.fromTo(alchemyHeaderRef.current,
+        { x: -50, opacity: 0 },
+        {
+          scrollTrigger: {
+            trigger: alchemyHeaderRef.current,
+            start: "top 85%",
+            end: "bottom top",
+            toggleActions: "play reverse play reverse"
+          },
+          x: 0,
+          opacity: 1,
+          duration: 1.0,
+          ease: "power3.out",
+          overwrite: "auto"
+        }
+      );
 
       // Product Slider (Horizontal Drag + Wheel/Trackpad Scroll)
       const track = scrollTrackRef.current;
+      let onWheelHandler: ((e: WheelEvent) => void) | null = null;
       if (track) {
         const trackWidth = track.scrollWidth;
         const viewportWidth = window.innerWidth;
         const minX = -(trackWidth - viewportWidth + 120);
         let currentX = 0;
 
-        // GSAP Draggable for click-drag
         Draggable.create(track, {
           type: "x",
           bounds: { minX, maxX: 0 },
@@ -193,12 +325,10 @@ export default function Home() {
           onDragEnd: function() { currentX = this.x; }
         });
 
-        // Wheel/Trackpad: horizontal swipe slides cards, vertical scroll passes through to page
         const onWheel = (e: WheelEvent) => {
           const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
 
           if (isHorizontal) {
-            // Intercept horizontal swipe → slide cards
             e.preventDefault();
             e.stopPropagation();
 
@@ -212,11 +342,13 @@ export default function Home() {
           }
         };
 
+        onWheelHandler = onWheel;
         track.addEventListener('wheel', onWheel, { passive: false });
       }
 
       // Reels Track: Draggable + wheel
       const reelsTrack = document.getElementById('reels-track');
+      let onReelsWheelHandler: ((e: WheelEvent) => void) | null = null;
       if (reelsTrack) {
         const reelsWidth = reelsTrack.scrollWidth;
         const vw = window.innerWidth;
@@ -244,46 +376,107 @@ export default function Home() {
           }
         };
 
+        onReelsWheelHandler = onReelsWheel;
         reelsTrack.addEventListener('wheel', onReelsWheel, { passive: false });
       }
 
-      // Hover Interaction for Product Duo
-      const duo = duoRef.current;
-      if (duo) {
-        const onEnter = () => {
-          gsap.to(duo, {
-            xPercent: 0,
-            x: 0,
-            opacity: 1,
-            duration: 0.8,
-            ease: "expo.in",
-            overwrite: "auto"
-          });
-        };
-
-        const onLeave = () => {
-          if (window.scrollY < 100) {
-            gsap.to(duo, {
-              xPercent: 100,
-              x: -100,
-              opacity: 0,
-              duration: 0.8,
-              ease: "power2.out",
-              overwrite: "auto"
-            });
-          }
-        };
-
-        duo.addEventListener('mouseenter', onEnter);
-        duo.addEventListener('mouseleave', onLeave);
-      }
+      (self as any).cleanups = {
+        track,
+        onWheelHandler,
+        reelsTrack,
+        onReelsWheelHandler
+      };
     });
 
     return () => {
       clearInterval(timer);
+      
+      const cleanups = (ctx as any).cleanups;
+      if (cleanups) {
+        if (cleanups.track && cleanups.onWheelHandler) {
+          cleanups.track.removeEventListener('wheel', cleanups.onWheelHandler);
+        }
+        if (cleanups.reelsTrack && cleanups.onReelsWheelHandler) {
+          cleanups.reelsTrack.removeEventListener('wheel', cleanups.onReelsWheelHandler);
+        }
+      }
       ctx.revert();
     };
   }, [banners, alchemyProducts, reels]);
+
+  // Card interactive 3D Tilt handlers (using trigger parent container to stop feedback shaking)
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const trigger = e.currentTarget;
+    const card = trigger.querySelector('.product-card') as HTMLDivElement;
+    if (!card) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const px = (x / rect.width) - 0.5;
+    const py = (y / rect.height) - 0.5;
+    
+    card.style.setProperty('--x', `${(x / rect.width) * 100}%`);
+    card.style.setProperty('--y', `${(y / rect.height) * 100}%`);
+    
+    const tiltX = -py * 16;
+    const tiltY = px * 16;
+    
+    card.classList.add('tilting');
+    gsap.to(card, {
+      transform: `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`,
+      duration: 0.15,
+      ease: "power2.out",
+      overwrite: "auto"
+    });
+  };
+
+  const handleCardMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    const trigger = e.currentTarget;
+    const card = trigger.querySelector('.product-card') as HTMLDivElement;
+    if (!card) return;
+
+    gsap.to(card, {
+      transform: `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`,
+      duration: 0.6,
+      ease: "power3.out",
+      overwrite: "auto",
+      onComplete: () => {
+        card.classList.remove('tilting');
+        card.style.transform = '';
+      }
+    });
+  };
+
+  const availableTabs = Array.from(new Set(
+    alchemyProducts.flatMap(p => {
+      const tags: string[] = [];
+      if (p.category) tags.push(p.category.toUpperCase().trim());
+      if (p.badge) tags.push(p.badge.toUpperCase().trim());
+      return tags;
+    }).filter(Boolean)
+  )).sort((a, b) => {
+    const PREFERRED_TABS_ORDER = ['MENS', 'UNISEX', 'WOMEN', 'BESTSELLER'];
+    const indexA = PREFERRED_TABS_ORDER.indexOf(a);
+    const indexB = PREFERRED_TABS_ORDER.indexOf(b);
+    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    return a.localeCompare(b);
+  });
+
+  useEffect(() => {
+    if (availableTabs.length > 0 && !activeTab) {
+      setActiveTab(availableTabs[0]);
+    }
+  }, [availableTabs, activeTab]);
+
+  const tabProducts = alchemyProducts.filter(p => {
+    const cat = p.category ? p.category.toUpperCase().trim() : '';
+    const bdg = p.badge ? p.badge.toUpperCase().trim() : '';
+    return cat === activeTab || bdg === activeTab;
+  });
 
   const spotlightProducts = alchemyProducts.slice(0, 2);
 
@@ -327,8 +520,10 @@ export default function Home() {
             </div>
 
             <div className="container hero-content" ref={heroContentRef}>
-              <p className="category">Defining Silence</p>
-              <h1>ETERNYX</h1>
+              <p className="category hero-subtitle">Defining Silence</p>
+              <h1 className="hero-title-reveal">
+                <CharacterReveal text="ETERNYX" />
+              </h1>
             </div>
           </div>
         </section>
@@ -341,52 +536,67 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Self-drawing Line Divider */}
+        <div className="container">
+          <div className="gold-divider scroll-draw-line" />
+        </div>
+
         {/* Alchemy Section (Draggable Product Gallery) */}
         <section className="alchemy" ref={alchemyRef}>
           <div className="alchemy-header" ref={alchemyHeaderRef}>
             <p className="category">The Alchemy</p>
-            <h2>Layers of an Immortal Scent</h2>
+            <h2 className="scroll-reveal-text">
+              <TextReveal text="Layers of an Immortal Scent" />
+            </h2>
           </div>
 
-          {/* Gradient fade edges */}
           <div className="alchemy-fade-left" />
           <div className="alchemy-fade-right" />
 
           <div className="product-scroll-track" ref={scrollTrackRef}>
             {alchemyProducts.map((product, index) => (
-              <div className="product-card" key={index} onClick={() => setSelectedProduct(product)}>
-                {product.badge && (
-                  <span className="product-badge">{product.badge}</span>
-                )}
-                <div className="product-card-img">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    width={280}
-                    height={320}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                </div>
-                <div className="product-card-info">
-                  <p className="product-card-category">{product.category}</p>
-                  <h3 className="product-card-name">{product.name}</h3>
-                  <p className="product-card-price">{product.price}</p>
-                  <div className="product-card-actions">
-                    <button className="btn-shop-now">Shop Now</button>
-                    <button 
-                      className="btn-add-cart"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCart(product, '100 ml', 1, { x: e.clientX, y: e.clientY });
-                      }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <path d="M16 10a4 4 0 01-8 0"/>
-                      </svg>
-                      Add to Cart
-                    </button>
+              <div 
+                className="product-card-trigger" 
+                key={index} 
+                onClick={() => setSelectedProduct(product)}
+                onMouseMove={handleCardMouseMove}
+                onMouseLeave={handleCardMouseLeave}
+              >
+                <div className="product-card">
+                  <div className="product-card-glare" />
+                  {product.badge && (
+                    <span className="product-badge">{product.badge}</span>
+                  )}
+                  <div className="product-card-img">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      width={280}
+                      height={320}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                  <div className="product-card-info">
+                    <p className="product-card-category">{product.category}</p>
+                    <h3 className="product-card-name">{product.name}</h3>
+                    <p className="product-card-price">{product.price}</p>
+                    <div className="product-card-actions">
+                      <button className="btn-shop-now">Shop Now</button>
+                      <button 
+                        className="btn-add-cart"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart(product, '100 ml', 1, { x: e.clientX, y: e.clientY });
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                          <line x1="3" y1="6" x2="21" y2="6"/>
+                          <path d="M16 10a4 4 0 01-8 0"/>
+                        </svg>
+                        Add to Cart
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -394,17 +604,27 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Self-drawing Line Divider */}
+        <div className="container">
+          <div className="gold-divider scroll-draw-line" />
+        </div>
+
         {/* Brand Statement Section */}
         <section className="brand-statement">
           <div className="brand-statement-left">
-            <p className="brand-statement-eyebrow">Our Philosophy</p>
-            <h2 className="brand-statement-headline">
-              Silence<br />Is Luxury.
+            <p className="brand-statement-eyebrow scroll-fade-item">Our Philosophy</p>
+            <h2 className="brand-statement-headline scroll-reveal-text">
+              <span className="text-reveal-mask" style={{ display: 'block' }}>
+                <span className="text-reveal-word text-reveal-trigger-item">Silence</span>
+              </span>
+              <span className="text-reveal-mask" style={{ display: 'block' }}>
+                <span className="text-reveal-word text-reveal-trigger-item">Is Luxury.</span>
+              </span>
             </h2>
-            <p className="brand-statement-body">
+            <p className="brand-statement-body scroll-fade-item">
               We reject the noise of conventional fragrance. ETERNYX engineers scents that speak without words — complex, enduring, and impossibly refined. A sanctuary for those who know.
             </p>
-            <a href="#" className="brand-statement-cta">
+            <a href="#" className="brand-statement-cta scroll-fade-item">
               About Us
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -422,12 +642,101 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Self-drawing Line Divider */}
+        <div className="container">
+          <div className="gold-divider scroll-draw-line" />
+        </div>
+
+        {/* Tabbed Products Section */}
+        {availableTabs.length > 0 && (
+          <section className="tabbed-products-section">
+            <div className="container">
+              <div className="tabbed-header">
+                <p className="category">Collections</p>
+                <h2 className="scroll-reveal-text">
+                  <TextReveal text="Curated Creations" />
+                </h2>
+              </div>
+              
+              <div className="tabs-nav scroll-fade-item">
+                {availableTabs.map((tab) => (
+                  <button
+                    key={tab}
+                    className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              <div className="tab-grid" key={activeTab}>
+                {tabProducts.map((product, index) => (
+                  <div 
+                    className="product-card-trigger" 
+                    key={index} 
+                    onClick={() => setSelectedProduct(product)}
+                    onMouseMove={handleCardMouseMove}
+                    onMouseLeave={handleCardMouseLeave}
+                    style={{ flex: 'unset' }}
+                  >
+                    <div className="product-card">
+                      <div className="product-card-glare" />
+                      {product.badge && (
+                        <span className="product-badge">{product.badge}</span>
+                      )}
+                      <div className="product-card-img">
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          width={320}
+                          height={360}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </div>
+                      <div className="product-card-info">
+                        <p className="product-card-category">{product.category}</p>
+                        <h3 className="product-card-name">{product.name}</h3>
+                        <p className="product-card-price">{product.price}</p>
+                        <div className="product-card-actions">
+                          <button className="btn-shop-now">Discover</button>
+                          <button 
+                            className="btn-add-cart"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(product, '100 ml', 1, { x: e.clientX, y: e.clientY });
+                            }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                              <line x1="3" y1="6" x2="21" y2="6"/>
+                              <path d="M16 10a4 4 0 01-8 0"/>
+                            </svg>
+                            Add to Cart
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Self-drawing Line Divider */}
+        <div className="container">
+          <div className="gold-divider scroll-draw-line" />
+        </div>
+
         {/* Influencer Reels Section */}
         <section className="reels-section">
           <div className="reels-header">
             <div>
               <p className="reels-eyebrow">As Seen On</p>
-              <h2 className="reels-title">Featured By Our Community</h2>
+              <h2 className="reels-title scroll-reveal-text">
+                <TextReveal text="Featured By Our Community" />
+              </h2>
             </div>
             <a href="#" className="reels-view-all">View All →</a>
           </div>
@@ -477,6 +786,8 @@ export default function Home() {
 
       {/* Product Detail Modal */}
       <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+      
+      {/* Floating Spotlight Duo */}
       <div className="hero-product-duo" ref={duoRef}>
         {spotlightProducts.map((product, index) => (
           <div 

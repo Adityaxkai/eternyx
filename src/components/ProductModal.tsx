@@ -1,16 +1,23 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import Image from 'next/image';
 import gsap from 'gsap';
 import { useCart } from '@/context/CartContext';
 
 export interface Product {
+  id?: string;
   name: string;
   category: string;
   price: string;
   image: string;
   badge?: string | null;
+  description?: string;
+  top_notes?: string[];
+  heart_notes?: string[];
+  base_notes?: string[];
+  sizes?: { size: string; stock: number }[];
+  additional_images?: string[];
 }
 
 interface ProductModalProps {
@@ -90,9 +97,72 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
   const detailsColRef = useRef<HTMLDivElement>(null);
   const imageColRef = useRef<HTMLDivElement>(null);
   const [selectedSize, setSelectedSize] = useState('100 ml');
+  const [reviews, setReviews] = useState<{ author: string; rating: number; text: string; date: string }[]>([]);
   const { addToCart, setIsCartOpen } = useCart();
 
-  const details = product ? (productDetails[product.name] ?? productDetails['Silken Oud']) : null;
+  const [activeImage, setActiveImage] = useState('');
+
+  useEffect(() => {
+    if (product) {
+      setActiveImage(product.image);
+    }
+  }, [product]);
+
+  const allImages = useMemo(() => {
+    if (!product) return [];
+    const images = [product.image];
+    if (product.additional_images && Array.isArray(product.additional_images)) {
+      product.additional_images.forEach(img => {
+        if (img && !images.includes(img)) {
+          images.push(img);
+        }
+      });
+    }
+    return images;
+  }, [product]);
+
+  // 1. Resolve product metadata & fallbacks
+  const nameKey = product?.name || 'Silken Oud';
+  const fallbackKey = Object.keys(productDetails).find(
+    (key) => key.toLowerCase() === nameKey.toLowerCase()
+  ) || 'Silken Oud';
+  const fallbackDetails = productDetails[fallbackKey];
+
+  const description = product?.description || fallbackDetails.description;
+  const topNotes = product?.top_notes && product.top_notes.length > 0 ? product.top_notes : fallbackDetails.topNotes;
+  const heartNotes = product?.heart_notes && product.heart_notes.length > 0 ? product.heart_notes : fallbackDetails.heartNotes;
+  const baseNotes = product?.base_notes && product.base_notes.length > 0 ? product.base_notes : fallbackDetails.baseNotes;
+
+  const sizes = useMemo(() => {
+    return product?.sizes && product.sizes.length > 0
+      ? product.sizes.map((s) => s.size)
+      : fallbackDetails.sizes;
+  }, [product, fallbackDetails.sizes]);
+
+  // 2. Fetch reviews from Database or fallback
+  useEffect(() => {
+    if (!product) return;
+
+    fetch(`/api/reviews?productName=${encodeURIComponent(product.name)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mappedReviews = data.map((r: any) => ({
+            author: r.customer,
+            rating: Number(r.rating),
+            text: r.comment,
+            date: r.date || new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+          }));
+          setReviews(mappedReviews);
+        } else {
+          setReviews(fallbackDetails.reviews);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch product reviews:', err);
+        setReviews(fallbackDetails.reviews);
+      });
+  }, [product, fallbackDetails]);
 
   // Bypass Lenis: scroll the details column from ANYWHERE in the modal
   useEffect(() => {
@@ -106,7 +176,6 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
       detailsEl.scrollTop += e.deltaY;
     };
 
-    // Use capture: true so we intercept BEFORE Lenis sees the event
     detailsEl.addEventListener('wheel', onWheel, { passive: false, capture: true });
     imageEl?.addEventListener('wheel', onWheel, { passive: false, capture: true });
 
@@ -119,9 +188,8 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
   useEffect(() => {
     if (product && panelRef.current && overlayRef.current) {
       // Set default size for the product
-      const currentDetails = productDetails[product.name] ?? productDetails['Silken Oud'];
-      if (currentDetails?.sizes?.[0]) {
-        setSelectedSize(currentDetails.sizes[0]);
+      if (sizes?.[0]) {
+        setSelectedSize(sizes[0]);
       }
 
       // Stop background scrolling
@@ -141,10 +209,13 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     }
 
     return () => {
-      // Restore scrolling when modal unmounts
+      // Restore scrolling when modal unmounts, only if the cart drawer is not currently open
       const lenis = (window as any).lenis;
-      lenis?.start();
-      document.body.style.overflow = '';
+      const isCartOpen = document.querySelector('.cart-drawer.open');
+      if (!isCartOpen) {
+        lenis?.start();
+        document.body.style.overflow = '';
+      }
     };
   }, [product]);
 
@@ -155,11 +226,11 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
     }
   };
 
-  if (!product || !details) return null;
+  if (!product) return null;
 
   return (
     <div className="pm-overlay" ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) handleClose(); }}>
-      <div className="pm-panel" ref={panelRef}>
+      <div className="pm-panel" ref={panelRef} data-lenis-prevent>
 
         {/* Close Button */}
         <button className="pm-close" onClick={handleClose}>
@@ -174,28 +245,48 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
           <div className="pm-image-wrap">
             {product.badge && <span className="product-badge">{product.badge}</span>}
             <Image
-              src={product.image}
+              src={activeImage || product.image}
               alt={product.name}
               width={500}
               height={600}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s ease' }}
+              key={activeImage}
             />
           </div>
+          
+          {/* Thumbnails Strip if multiple images exist */}
+          {allImages.length > 1 && (
+            <div className="pm-thumbnails">
+              {allImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  className={`pm-thumbnail-btn ${activeImage === img ? 'active' : ''}`}
+                  onClick={() => setActiveImage(img)}
+                >
+                  <img
+                    src={img}
+                    alt={`${product.name} thumbnail ${idx + 1}`}
+                    className="pm-thumbnail-img"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
           {/* Scent Pyramid */}
           <div className="pm-pyramid pm-pyramid-desktop">
             <p className="pm-section-label">Scent Pyramid</p>
             <div className="pm-notes-grid">
               <div className="pm-note-group">
                 <span className="pm-note-type">Top</span>
-                {details.topNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
+                {topNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
               </div>
               <div className="pm-note-group">
                 <span className="pm-note-type">Heart</span>
-                {details.heartNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
+                {heartNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
               </div>
               <div className="pm-note-group">
                 <span className="pm-note-type">Base</span>
-                {details.baseNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
+                {baseNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
               </div>
             </div>
           </div>
@@ -207,7 +298,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
           <h2 className="pm-name">{product.name}</h2>
           <p className="pm-price">{product.price}</p>
 
-          <p className="pm-description">{details.description}</p>
+          <p className="pm-description">{description}</p>
 
           {/* Scent Pyramid (Mobile Only) */}
           <div className="pm-pyramid pm-pyramid-mobile">
@@ -215,15 +306,15 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
             <div className="pm-notes-grid">
               <div className="pm-note-group">
                 <span className="pm-note-type">Top</span>
-                {details.topNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
+                {topNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
               </div>
               <div className="pm-note-group">
                 <span className="pm-note-type">Heart</span>
-                {details.heartNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
+                {heartNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
               </div>
               <div className="pm-note-group">
                 <span className="pm-note-type">Base</span>
-                {details.baseNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
+                {baseNotes.map(n => <span key={n} className="pm-note-tag">{n}</span>)}
               </div>
             </div>
           </div>
@@ -232,7 +323,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
           <div className="pm-size-section">
             <p className="pm-section-label">Select Size</p>
             <div className="pm-sizes">
-              {details.sizes.map(size => (
+              {sizes.map(size => (
                 <button
                   key={size}
                   className={`pm-size-btn ${selectedSize === size ? 'pm-size-active' : ''}`}
@@ -271,16 +362,16 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
               <span className="pm-review-score">5.0</span>
               <div>
                 <div className="pm-stars">★★★★★</div>
-                <span className="pm-review-count">Based on {details.reviews.length} reviews</span>
+                <span className="pm-review-count">Based on {reviews.length} reviews</span>
               </div>
             </div>
             <div className="pm-review-list">
-              {details.reviews.map((r, i) => (
+              {reviews.map((r, i) => (
                 <div key={i} className="pm-review-card">
                   <div className="pm-review-header">
-                    <div className="pm-review-avatar">{r.author[0]}</div>
+                    <div className="pm-review-avatar">{r.author ? r.author[0] : 'C'}</div>
                     <div>
-                      <p className="pm-review-author">{r.author}</p>
+                      <p className="pm-review-author">{r.author || 'Verified Customer'}</p>
                       <span className="pm-review-date">{r.date}</span>
                     </div>
                     <div className="pm-review-stars">{'★'.repeat(r.rating)}</div>

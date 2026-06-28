@@ -7,6 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import CartDrawer from "@/components/CartDrawer";
 import FloatingCart from "@/components/FloatingCart";
 import StyledJsxRegistry from "./registry";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "ETERNYX | Silence is Luxury",
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         <StyledJsxRegistry>
           <CartProvider>
             <Navbar />

@@ -233,7 +233,7 @@ export default function ReelsPage() {
                         </div>
                         <div className="td col-image">
                           {reel.thumbnail_url ? (
-                            <img src={reel.thumbnail_url} alt={reel.handle} className="row-img portrait" />
+                            <img src={reel.thumbnail_url} alt={reel.handle} className="row-img portrait" referrerPolicy="no-referrer" />
                           ) : (
                             <div className="row-img-placeholder portrait"></div>
                           )}
@@ -346,7 +346,7 @@ export default function ReelsPage() {
                   {uploading ? (
                     <span className="spinner">Uploading...</span>
                   ) : formThumbnailUrl ? (
-                    <img src={formThumbnailUrl} alt="Thumbnail Preview" className="upload-preview" style={{ objectFit: 'contain' }} />
+                    <img src={formThumbnailUrl} alt="Thumbnail Preview" className="upload-preview" style={{ objectFit: 'contain' }} referrerPolicy="no-referrer" />
                   ) : (
                     <span className="upload-placeholder">Click to upload Video Thumbnail</span>
                   )}

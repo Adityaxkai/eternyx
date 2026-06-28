@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { readJSON } from '@/lib/dataStore';
+import { journalService } from '@/services/journalService';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const posts = readJSON<any[]>('journal.json');
-    // Return only Published articles to the public
-    const publishedPosts = posts.filter((p) => p.status === 'Published');
+    const publishedPosts = await journalService.getAll(false);
     return NextResponse.json(publishedPosts);
   } catch (error) {
+    console.error('Failed to fetch public journal feed:', error);
     return NextResponse.json({ error: 'Failed to fetch journal feed' }, { status: 400 });
   }
 }

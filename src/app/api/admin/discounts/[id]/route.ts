@@ -1,21 +1,32 @@
-import { readJSON, writeJSON } from '@/lib/dataStore';
+import { discountService } from '@/services/discountService';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const body = await request.json();
-  const discounts = readJSON<any[]>('discounts.json');
-  const idx = discounts.findIndex((d) => d.id === id);
-  if (idx === -1) return Response.json({ error: 'Not found' }, { status: 404 });
-  discounts[idx] = { ...discounts[idx], ...body };
-  writeJSON('discounts.json', discounts);
-  return Response.json(discounts[idx]);
+  try {
+    const body = await request.json();
+    const updated = await discountService.update(id, body);
+    if (!updated) {
+      return Response.json({ error: 'Discount not found' }, { status: 404 });
+    }
+    return Response.json(updated);
+  } catch (error) {
+    console.error(`Failed to update discount ${id}:`, error);
+    return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const discounts = readJSON<any[]>('discounts.json');
-  writeJSON('discounts.json', discounts.filter((d) => d.id !== id));
-  return Response.json({ success: true });
+  try {
+    const deleted = await discountService.delete(id);
+    if (!deleted) {
+      return Response.json({ error: 'Discount not found' }, { status: 404 });
+    }
+    return Response.json({ success: true });
+  } catch (error) {
+    console.error(`Failed to delete discount ${id}:`, error);
+    return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }

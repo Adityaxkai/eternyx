@@ -252,7 +252,7 @@ export default function BannersPage() {
                       <div className="drag-handle" {...provided.dragHandleProps}>⋮⋮</div>
                       
                       <div className="banner-preview">
-                        <img src={banner.image_url} alt={`Banner ${index + 1}`} />
+                        <img src={banner.image_url} alt={`Banner ${index + 1}`} referrerPolicy="no-referrer" />
                         <div className="banner-number">{index + 1}</div>
                       </div>
                       
@@ -328,7 +328,7 @@ export default function BannersPage() {
                   {uploadingDesktop ? (
                     <span className="spinner">Uploading...</span>
                   ) : formImageUrl ? (
-                    <img src={formImageUrl} alt="Desktop Preview" className="upload-preview" />
+                    <img src={formImageUrl} alt="Desktop Preview" className="upload-preview" referrerPolicy="no-referrer" />
                   ) : (
                     <span className="upload-placeholder">Click to upload Desktop image</span>
                   )}
@@ -353,7 +353,7 @@ export default function BannersPage() {
                   {uploadingMobile ? (
                     <span className="spinner">Uploading...</span>
                   ) : formMobileImageUrl ? (
-                    <img src={formMobileImageUrl} alt="Mobile Preview" className="upload-preview" />
+                    <img src={formMobileImageUrl} alt="Mobile Preview" className="upload-preview" referrerPolicy="no-referrer" />
                   ) : (
                     <span className="upload-placeholder">Click to upload Mobile image</span>
                   )}

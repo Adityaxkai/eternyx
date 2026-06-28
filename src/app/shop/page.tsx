@@ -1,19 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import ProductModal, { Product } from '@/components/ProductModal';
 import { useCart } from '@/context/CartContext';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const CATEGORIES = ['All', 'Eau de Parfum', 'Luxury Blend', 'Limited Edition', 'Signature Scent'];
 
-export default function ShopPage() {
+function ShopContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
   const { addToCart } = useCart();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const query = searchParams.get('q') || '';
 
   useEffect(() => {
     fetch('/api/products')
@@ -26,6 +30,7 @@ export default function ShopPage() {
             price: typeof p.price === 'number' ? `$${p.price}` : p.price,
             image: p.image_url || '/images/hero.png',
             badge: p.badge || null,
+            additional_images: p.additional_images || [],
           }));
           setProducts(mapped);
         }
@@ -37,9 +42,18 @@ export default function ShopPage() {
       });
   }, []);
 
-  const filteredProducts = selectedCategory === 'All'
-    ? products
-    : products.filter((p) => p.category === selectedCategory);
+  const filteredProducts = products.filter((product) => {
+    // Category match (case-insensitive)
+    const categoryMatch = selectedCategory === 'All' || 
+      product.category.toLowerCase() === selectedCategory.toLowerCase();
+    
+    // Search query match (case-insensitive on name and category)
+    const searchMatch = !query || 
+      product.name.toLowerCase().includes(query.toLowerCase()) ||
+      product.category.toLowerCase().includes(query.toLowerCase());
+      
+    return categoryMatch && searchMatch;
+  });
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
@@ -53,9 +67,21 @@ export default function ShopPage() {
         <section className="shop-header">
           <p className="shop-eyebrow">The Collection</p>
           <h1 className="shop-title">Silence is Luxury</h1>
-          <p className="shop-subtitle">
-            An curated archive of our complex, enduring olfactory statements.
-          </p>
+          {query ? (
+            <p className="shop-subtitle">
+              Showing results for &ldquo;<span style={{ color: '#d4af37', fontWeight: 500 }}>{query}</span>&rdquo;
+              <button 
+                onClick={() => router.push('/shop')}
+                className="clear-search-btn"
+              >
+                Clear Search
+              </button>
+            </p>
+          ) : (
+            <p className="shop-subtitle">
+              An curated archive of our complex, enduring olfactory statements.
+            </p>
+          )}
         </section>
 
         {/* Category Navigation */}
@@ -90,7 +116,7 @@ export default function ShopPage() {
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="no-products">
-              <p>No creations found in this collection.</p>
+              <p>No creations found matching your request.</p>
             </div>
           ) : (
             <div className="shop-grid">
@@ -99,7 +125,7 @@ export default function ShopPage() {
                   className="product-card"
                   key={index}
                   onClick={() => setSelectedProduct(product)}
-                  style={{ flex: 'unset' }} /* Override the flex basis from landing scroll track */
+                  style={{ flex: 'unset' }}
                 >
                   {product.badge && <span className="product-badge">{product.badge}</span>}
                   <div className="product-card-img">
@@ -181,6 +207,26 @@ export default function ShopPage() {
           font-weight: 300;
         }
 
+        .clear-search-btn {
+          background: none;
+          border: none;
+          color: #ffffff;
+          text-decoration: underline;
+          margin-left: 12px;
+          cursor: pointer;
+          font-size: 0.65rem;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          opacity: 0.7;
+          transition: opacity 0.2s ease, color 0.2s ease;
+          font-family: var(--font-sans);
+        }
+
+        .clear-search-btn:hover {
+          opacity: 1;
+          color: #d4af37;
+        }
+
         .shop-filters-section {
           width: 100%;
           max-width: 1200px;
@@ -250,7 +296,6 @@ export default function ShopPage() {
           font-style: italic;
         }
 
-        /* Skeleton Loading styles */
         .shop-skeleton-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -327,5 +372,128 @@ export default function ShopPage() {
         }
       `}</style>
     </>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={
+      <main className="shop-container">
+        <section className="shop-header">
+          <p className="shop-eyebrow">The Collection</p>
+          <h1 className="shop-title">Silence is Luxury</h1>
+          <p className="shop-subtitle">
+            An curated archive of our complex, enduring olfactory statements.
+          </p>
+        </section>
+        <section className="shop-grid-section">
+          <div className="shop-skeleton-grid">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="skeleton-card">
+                <div className="skeleton-image" />
+                <div className="skeleton-info">
+                  <div className="skeleton-text skeleton-category" />
+                  <div className="skeleton-text skeleton-name" />
+                  <div className="skeleton-text skeleton-price" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        <style jsx>{`
+          .shop-container {
+            min-height: 100vh;
+            background-color: #0a0a0a;
+            padding: 140px 50px 80px 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .shop-header {
+            text-align: center;
+            margin-bottom: 60px;
+            max-width: 600px;
+          }
+          .shop-eyebrow {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            color: #d4af37;
+            margin-bottom: 12px;
+            font-weight: 500;
+          }
+          .shop-title {
+            font-family: var(--font-serif);
+            font-size: 2.75rem;
+            color: #ffffff;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
+          }
+          .shop-subtitle {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            line-height: 1.6;
+            font-weight: 300;
+          }
+          .shop-grid-section {
+            width: 100%;
+            max-width: 1200px;
+          }
+          .shop-skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 40px;
+          }
+          .skeleton-card {
+            background: #0c0c0c;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            overflow: hidden;
+            height: 480px;
+            display: flex;
+            flex-direction: column;
+          }
+          .skeleton-image {
+            width: 100%;
+            height: 280px;
+            background: linear-gradient(90deg, #111 25%, #181818 50%, #111 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+          }
+          .skeleton-info {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+          }
+          .skeleton-text {
+            background: linear-gradient(90deg, #111 25%, #181818 50%, #111 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 2px;
+          }
+          .skeleton-category {
+            height: 10px;
+            width: 40%;
+          }
+          .skeleton-name {
+            height: 18px;
+            width: 70%;
+          }
+          .skeleton-price {
+            height: 14px;
+            width: 30%;
+          }
+          @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}</style>
+      </main>
+    }>
+      <ShopContent />
+    </Suspense>
   );
 }
