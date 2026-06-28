@@ -2,10 +2,102 @@
 
 import { useState, useEffect } from 'react';
 
-type Tab = 'General' | 'Branding' | 'Shipping' | 'Taxes' | 'Notifications';
+type Tab = 'General' | 'Branding' | 'Shipping' | 'Taxes' | 'Notifications' | 'Footer';
+
+interface FooterLink {
+  label: string;
+  url: string;
+}
+
+interface FooterColumn {
+  title: string;
+  links: FooterLink[];
+}
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>('General');
+
+  // ── Footer ──
+  const [footerDisclaimer, setFooterDisclaimer] = useState('');
+  const [footerCopyright, setFooterCopyright] = useState('');
+  const [footerColumns, setFooterColumns] = useState<FooterColumn[]>([]);
+  const [footerBottomLinks, setFooterBottomLinks] = useState<FooterLink[]>([]);
+
+  const handleAddColumn = () => {
+    setFooterColumns([...footerColumns, { title: 'New Category', links: [] }]);
+  };
+
+  const handleRemoveColumn = (colIdx: number) => {
+    setFooterColumns(footerColumns.filter((_, idx) => idx !== colIdx));
+  };
+
+  const handleUpdateColumnTitle = (colIdx: number, newTitle: string) => {
+    const updated = footerColumns.map((col, idx) => {
+      if (idx === colIdx) return { ...col, title: newTitle };
+      return col;
+    });
+    setFooterColumns(updated);
+  };
+
+  const handleAddLink = (colIdx: number) => {
+    const updated = footerColumns.map((col, idx) => {
+      if (idx === colIdx) {
+        return {
+          ...col,
+          links: [...col.links, { label: 'New Link', url: '#' }]
+        };
+      }
+      return col;
+    });
+    setFooterColumns(updated);
+  };
+
+  const handleUpdateLink = (colIdx: number, linkIdx: number, field: 'label' | 'url', value: string) => {
+    const updated = footerColumns.map((col, cIdx) => {
+      if (cIdx === colIdx) {
+        const updatedLinks = col.links.map((link, lIdx) => {
+          if (lIdx === linkIdx) {
+            return { ...link, [field]: value };
+          }
+          return link;
+        });
+        return { ...col, links: updatedLinks };
+      }
+      return col;
+    });
+    setFooterColumns(updated);
+  };
+
+  const handleRemoveLink = (colIdx: number, linkIdx: number) => {
+    const updated = footerColumns.map((col, cIdx) => {
+      if (cIdx === colIdx) {
+        return {
+          ...col,
+          links: col.links.filter((_, lIdx) => lIdx !== linkIdx)
+        };
+      }
+      return col;
+    });
+    setFooterColumns(updated);
+  };
+
+  const handleAddBottomLink = () => {
+    setFooterBottomLinks([...footerBottomLinks, { label: 'New Policy', url: '#' }]);
+  };
+
+  const handleUpdateBottomLink = (idx: number, field: 'label' | 'url', value: string) => {
+    const updated = footerBottomLinks.map((link, lIdx) => {
+      if (lIdx === idx) {
+        return { ...link, [field]: value };
+      }
+      return link;
+    });
+    setFooterBottomLinks(updated);
+  };
+
+  const handleRemoveBottomLink = (idx: number) => {
+    setFooterBottomLinks(footerBottomLinks.filter((_, lIdx) => lIdx !== idx));
+  };
 
   // ── General ──
   const [storeName, setStoreName] = useState('');
@@ -70,6 +162,13 @@ export default function SettingsPage() {
           setNotifyNewBooking(data.notifyNewBooking !== false);
           setNotifyNewInquiry(data.notifyNewInquiry !== false);
           setNotifyEmail(data.notifyEmail || data.email || '');
+
+          // Load Footer settings
+          const fc = data.footerConfig || {};
+          setFooterDisclaimer(fc.disclaimer || '');
+          setFooterCopyright(fc.copyright || data.footerText || '');
+          setFooterColumns(fc.columns || []);
+          setFooterBottomLinks(fc.bottomLinks || []);
         }
         setLoading(false);
       })
@@ -84,7 +183,13 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storeName, email, phone, currency, maintenance,
-          primaryColor, tagline, footerText,
+          primaryColor, tagline, footerText: footerCopyright,
+          footerConfig: {
+            disclaimer: footerDisclaimer,
+            copyright: footerCopyright,
+            columns: footerColumns,
+            bottomLinks: footerBottomLinks
+          },
           freeShippingThreshold, standardRate, expressRate, shippingOrigin,
           taxEnabled, taxRate, taxLabel, taxIncluded,
           notifyNewOrder, notifyLowStock, notifyNewReview, notifyNewBooking, notifyNewInquiry, notifyEmail,
@@ -101,7 +206,7 @@ export default function SettingsPage() {
     }
   };
 
-  const TABS: Tab[] = ['General', 'Branding', 'Shipping', 'Taxes', 'Notifications'];
+  const TABS: Tab[] = ['General', 'Branding', 'Shipping', 'Taxes', 'Notifications', 'Footer'];
 
   return (
     <div className="settings-container">
@@ -326,6 +431,137 @@ export default function SettingsPage() {
                 </section>
               </>
             )}
+
+            {/* ── FOOTER CONFIGURATOR ── */}
+            {tab === 'Footer' && (
+              <>
+                <section className="settings-card">
+                  <h2>Footer Fine Print</h2>
+                  <p className="section-desc">Manage site-wide footer notes and copyright disclaimers.</p>
+
+                  <div className="form-group">
+                    <label htmlFor="footer-disclaimer-input">Boutique Disclaimer / Sourcing Notes</label>
+                    <textarea 
+                      id="footer-disclaimer-input"
+                      value={footerDisclaimer} 
+                      onChange={e => setFooterDisclaimer(e.target.value)} 
+                      rows={5}
+                      placeholder="ETERNYX fragrances are handcrafted in Grasse..."
+                      className="textarea-input"
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label htmlFor="footer-copyright-input">Copyright Line</label>
+                    <input 
+                      id="footer-copyright-input"
+                      type="text" 
+                      value={footerCopyright} 
+                      onChange={e => setFooterCopyright(e.target.value)} 
+                      placeholder="© 2026 ETERNYX Luxury. All rights reserved." 
+                    />
+                  </div>
+                </section>
+
+                <section className="settings-card">
+                  <div className="card-header-flex">
+                    <h2>Directory Navigation Columns</h2>
+                    <button className="add-btn-accent" onClick={handleAddColumn}>
+                      + Add Column
+                    </button>
+                  </div>
+                  <p className="section-desc">Set up your footer columns (recommend 4 columns maximum on desktop).</p>
+
+                  <div className="columns-editor-list">
+                    {footerColumns.length === 0 ? (
+                      <p className="empty-hint">No columns configured. Click &ldquo;Add Column&rdquo; to start.</p>
+                    ) : (
+                      footerColumns.map((col, colIdx) => (
+                        <div key={colIdx} className="column-editor-card">
+                          <div className="column-editor-header">
+                            <input 
+                              type="text" 
+                              value={col.title} 
+                              onChange={e => handleUpdateColumnTitle(colIdx, e.target.value)}
+                              placeholder="Column Title (e.g. Shop)"
+                              className="title-input-field"
+                            />
+                            <button className="btn-delete-column" onClick={() => handleRemoveColumn(colIdx)}>
+                              Delete Column
+                            </button>
+                          </div>
+
+                          <div className="column-links-list">
+                            {col.links.map((link, linkIdx) => (
+                              <div key={linkIdx} className="link-editor-row">
+                                <input 
+                                  type="text" 
+                                  value={link.label} 
+                                  onChange={e => handleUpdateLink(colIdx, linkIdx, 'label', e.target.value)}
+                                  placeholder="Link Label (e.g. Silken Oud)"
+                                  style={{ flex: 1 }}
+                                />
+                                <input 
+                                  type="text" 
+                                  value={link.url} 
+                                  onChange={e => handleUpdateLink(colIdx, linkIdx, 'url', e.target.value)}
+                                  placeholder="URL (e.g. /shop)"
+                                  style={{ flex: 1 }}
+                                />
+                                <button className="btn-delete-link" onClick={() => handleRemoveLink(colIdx, linkIdx)}>
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                            <button className="btn-add-link" onClick={() => handleAddLink(colIdx)}>
+                              + Add Link Item
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+
+                <section className="settings-card">
+                  <div className="card-header-flex">
+                    <h2>Bottom Policies List</h2>
+                    <button className="add-btn-accent" onClick={handleAddBottomLink}>
+                      + Add Policy Link
+                    </button>
+                  </div>
+                  <p className="section-desc">Manage links in the horizontal list at the very bottom bar of the footer.</p>
+
+                  <div className="bottom-links-editor-list">
+                    {footerBottomLinks.length === 0 ? (
+                      <p className="empty-hint">No bottom links configured.</p>
+                    ) : (
+                      footerBottomLinks.map((link, idx) => (
+                        <div key={idx} className="link-editor-row">
+                          <input 
+                            type="text" 
+                            value={link.label} 
+                            onChange={e => handleUpdateBottomLink(idx, 'label', e.target.value)}
+                            placeholder="Label (e.g. Privacy Policy)"
+                            style={{ flex: 1 }}
+                          />
+                          <input 
+                            type="text" 
+                            value={link.url} 
+                            onChange={e => handleUpdateBottomLink(idx, 'url', e.target.value)}
+                            placeholder="URL (e.g. /privacy)"
+                            style={{ flex: 1 }}
+                          />
+                          <button className="btn-delete-link" onClick={() => handleRemoveBottomLink(idx)}>
+                            ✕
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -439,6 +675,167 @@ export default function SettingsPage() {
         .notify-info { display: flex; flex-direction: column; gap: 3px; }
         .notify-info strong { color: rgba(255,255,255,0.85); font-size: 0.9rem; font-weight: 500; }
         .notify-info span { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+
+        .textarea-input {
+          width: 100%;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 12px;
+          color: #fff;
+          font-family: inherit;
+          border-radius: 4px;
+          box-sizing: border-box;
+          resize: vertical;
+        }
+        .textarea-input:focus {
+          outline: none;
+          border-color: #d4af37;
+        }
+
+        .card-header-flex {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+        }
+        .card-header-flex h2 {
+          margin: 0;
+        }
+
+        .add-btn-accent {
+          background: rgba(212, 175, 55, 0.15);
+          color: #d4af37;
+          border: 1px solid rgba(212, 175, 55, 0.35);
+          padding: 6px 14px;
+          font-size: 0.76rem;
+          font-weight: 500;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          border-radius: 3px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .add-btn-accent:hover {
+          background: rgba(212, 175, 55, 0.25);
+          border-color: #d4af37;
+        }
+
+        .columns-editor-list {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          margin-top: 18px;
+        }
+
+        .column-editor-card {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 4px;
+          padding: 20px;
+        }
+
+        .column-editor-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          padding-bottom: 12px;
+          margin-bottom: 14px;
+        }
+
+        .title-input-field {
+          background: transparent !important;
+          border: none !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+          border-radius: 0 !important;
+          font-size: 0.95rem !important;
+          font-weight: 500 !important;
+          padding: 4px 0 !important;
+          color: #d4af37 !important;
+        }
+        .title-input-field:focus {
+          border-bottom-color: #d4af37 !important;
+        }
+
+        .btn-delete-column {
+          background: rgba(239, 68, 68, 0.1);
+          color: #f87171;
+          border: 1px solid rgba(239, 68, 68, 0.25);
+          padding: 6px 12px;
+          font-size: 0.72rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-radius: 3px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-delete-column:hover {
+          background: rgba(239, 68, 68, 0.2);
+          border-color: #ef4444;
+        }
+
+        .column-links-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .link-editor-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .btn-delete-link {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.6);
+          width: 32px;
+          height: 32px;
+          border-radius: 4px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.8rem;
+          transition: all 0.2s;
+        }
+        .btn-delete-link:hover {
+          background: rgba(239, 68, 68, 0.15);
+          border-color: rgba(239, 68, 68, 0.35);
+          color: #f87171;
+        }
+
+        .btn-add-link {
+          align-self: flex-start;
+          background: none;
+          border: none;
+          color: rgba(255, 255, 255, 0.4);
+          font-size: 0.76rem;
+          font-weight: 500;
+          cursor: pointer;
+          padding: 4px 8px;
+          margin-top: 4px;
+          transition: color 0.2s;
+        }
+        .btn-add-link:hover {
+          color: #d4af37;
+        }
+
+        .bottom-links-editor-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-top: 14px;
+        }
+
+        .empty-hint {
+          color: rgba(255, 255, 255, 0.35);
+          font-size: 0.85rem;
+          font-style: italic;
+          margin: 10px 0;
+        }
 
         @media (max-width: 768px) {
           .settings-grid { grid-template-columns: 1fr; }

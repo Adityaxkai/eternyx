@@ -1665,6 +1665,36 @@ h1, h2, h3 {
   .alchemy-fade-right {
     width: 40px !important;
   }
+  .product-scroll-track {
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    user-select: auto;
+    cursor: default;
+    scrollbar-width: none;
+  }
+  .product-scroll-track::-webkit-scrollbar {
+    display: none;
+  }
+  .product-card-trigger {
+    scroll-snap-align: start;
+  }
+
+  /* Influencer Reels Slider */
+  .reels-track-wrap {
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    user-select: auto;
+    cursor: default;
+    scrollbar-width: none;
+  }
+  .reels-track-wrap::-webkit-scrollbar {
+    display: none;
+  }
+  .reel-card {
+    scroll-snap-align: start;
+  }
 
   /* Brand Statement */
   .brand-statement-headline {
@@ -1860,8 +1890,25 @@ h1, h2, h3 {
     letter-spacing: 0.15em;
   }
   .tab-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
     gap: 20px;
+    padding: 0 24px 20px 24px;
+    margin: 0 -24px;
+    scrollbar-width: none;
+  }
+  .tab-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .tab-grid .product-card-trigger {
+    flex: 0 0 240px !important;
+    scroll-snap-align: start;
+  }
+  .gold-divider {
+    margin: 24px 0 !important;
   }
 }
 

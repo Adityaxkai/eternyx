@@ -305,10 +305,12 @@ export default function Home() {
         }
       );
 
-      // Product Slider (Horizontal Drag + Wheel/Trackpad Scroll)
+      // Product Slider (Horizontal Drag + Wheel/Trackpad Scroll) - Desktop Only
+      const isDesktop = window.innerWidth > 768;
       const track = scrollTrackRef.current;
       let onWheelHandler: ((e: WheelEvent) => void) | null = null;
-      if (track) {
+      
+      if (track && isDesktop) {
         const trackWidth = track.scrollWidth;
         const viewportWidth = window.innerWidth;
         const minX = -(trackWidth - viewportWidth + 120);
@@ -332,10 +334,10 @@ export default function Home() {
             e.preventDefault();
             e.stopPropagation();
 
-            currentX = Math.max(minX, Math.min(0, currentX - e.deltaX));
+            currentX = Math.max(minX, Math.min(0, currentX - e.deltaX * 1.2));
             gsap.to(track, {
               x: currentX,
-              duration: 0.5,
+              duration: 0.4,
               ease: "power2.out",
               overwrite: "auto"
             });
@@ -346,10 +348,11 @@ export default function Home() {
         track.addEventListener('wheel', onWheel, { passive: false });
       }
 
-      // Reels Track: Draggable + wheel
+      // Reels Track: Draggable + wheel - Desktop Only
       const reelsTrack = document.getElementById('reels-track');
       let onReelsWheelHandler: ((e: WheelEvent) => void) | null = null;
-      if (reelsTrack) {
+      
+      if (reelsTrack && isDesktop) {
         const reelsWidth = reelsTrack.scrollWidth;
         const vw = window.innerWidth;
         const reelsMinX = -(reelsWidth - vw + 120);
@@ -371,8 +374,8 @@ export default function Home() {
           if (isHorizontal) {
             e.preventDefault();
             e.stopPropagation();
-            reelsX = Math.max(reelsMinX, Math.min(0, reelsX - e.deltaX));
-            gsap.to(reelsTrack, { x: reelsX, duration: 0.5, ease: 'power2.out', overwrite: 'auto' });
+            reelsX = Math.max(reelsMinX, Math.min(0, reelsX - e.deltaX * 1.2));
+            gsap.to(reelsTrack, { x: reelsX, duration: 0.4, ease: 'power2.out', overwrite: 'auto' });
           }
         };
 
@@ -381,10 +384,10 @@ export default function Home() {
       }
 
       (self as any).cleanups = {
-        track,
-        onWheelHandler,
-        reelsTrack,
-        onReelsWheelHandler
+        track: isDesktop ? track : null,
+        onWheelHandler: isDesktop ? onWheelHandler : null,
+        reelsTrack: isDesktop ? reelsTrack : null,
+        onReelsWheelHandler: isDesktop ? onReelsWheelHandler : null
       };
     });
 
@@ -776,12 +779,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer style={{ padding: '100px 0', textAlign: 'center', opacity: 0.5 }}>
-          <div className="container">
-            <p>&copy; 2026 ETERNYX LUXURY. ALL RIGHTS RESERVED.</p>
-          </div>
-        </footer>
       </main>
 
       {/* Product Detail Modal */}
