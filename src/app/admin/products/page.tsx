@@ -131,24 +131,26 @@ export default function ProductsPage() {
     if (!file) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': file.type || 'image/jpeg',
+          'x-filename': file.name,
+        },
+        body: file,
       });
 
       if (res.ok) {
         const data = await res.json();
         setFormImageUrl(data.url);
       } else {
-        alert('Failed to upload image.');
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to upload image.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Upload error.');
+      alert(err.message || 'Upload error.');
     } finally {
       setUploading(false);
     }
@@ -162,20 +164,22 @@ export default function ProductsPage() {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/admin/upload', {
+        const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
           method: 'POST',
-          body: formData,
+          headers: {
+            'Content-Type': file.type || 'image/jpeg',
+            'x-filename': file.name,
+          },
+          body: file,
         });
         if (res.ok) {
           const data = await res.json();
           setFormAdditionalImages(prev => [...prev, data.url]);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Upload error.');
+      alert(err.message || 'Upload error.');
     } finally {
       setUploading(false);
     }
@@ -197,7 +201,7 @@ export default function ProductsPage() {
       volume: formVolume,
       image_url: formImageUrl,
       additional_images: formAdditionalImages,
-      badge: formBadge || undefined,
+      badge: formBadge.trim() || null,
       visible: formVisible,
     };
 
@@ -285,7 +289,7 @@ export default function ProductsPage() {
                           <strong>{product.name}</strong>
                           <span className="subtext">{product.category}</span>
                         </div>
-                        <div className="td col-price">${product.price}</div>
+                        <div className="td col-price">₹{product.price}</div>
                         <div className="td col-badge">
                           {product.badge ? (
                             <span className="badge-tag">{product.badge}</span>
@@ -318,7 +322,7 @@ export default function ProductsPage() {
 
       {/* Sliding Form Drawer */}
       <div className={`drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)}>
-        <div className={`drawer-content ${isDrawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <div className={`drawer-content ${isDrawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()} data-lenis-prevent="true">
           <div className="drawer-header">
             <h2>{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
             <button className="close-btn" onClick={() => setIsDrawerOpen(false)}>
@@ -373,12 +377,12 @@ export default function ProductsPage() {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Price ($)</label>
+                <label>Price (₹)</label>
                 <input 
                   type="number" 
                   value={formPrice} 
                   onChange={(e) => setFormPrice(Number(e.target.value))} 
-                  placeholder="180"
+                  placeholder="599"
                   required
                 />
               </div>
@@ -682,10 +686,11 @@ export default function ProductsPage() {
         .drawer-content {
           position: fixed;
           top: 0;
-          right: -450px;
+          right: -480px;
           width: 100%;
-          max-width: 450px;
-          height: 100%;
+          max-width: 480px;
+          height: 100vh;
+          max-height: 100vh;
           background: #0d0d0d;
           border-left: 1px solid rgba(255, 255, 255, 0.05);
           box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
@@ -695,6 +700,23 @@ export default function ProductsPage() {
           display: flex;
           flex-direction: column;
           overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+        }
+
+        .drawer-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .drawer-content::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+        }
+        .drawer-content::-webkit-scrollbar-thumb {
+          background: rgba(212, 175, 55, 0.3);
+          border-radius: 3px;
+        }
+        .drawer-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(212, 175, 55, 0.6);
         }
 
         .drawer-content.open {
@@ -705,9 +727,10 @@ export default function ProductsPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 30px;
+          margin-bottom: 24px;
           padding-bottom: 15px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          flex-shrink: 0;
         }
 
         .drawer-header h2 {
@@ -736,7 +759,8 @@ export default function ProductsPage() {
           display: flex;
           flex-direction: column;
           gap: 20px;
-          flex: 1;
+          padding-bottom: 40px;
+          flex-shrink: 0;
         }
 
         .form-row {

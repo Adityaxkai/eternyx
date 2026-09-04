@@ -1,12 +1,18 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import gsap from 'gsap';
 
 export default function Cursor() {
+  const pathname = usePathname();
   const cursorRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const currentImageRef = useRef<HTMLImageElement>(null);
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
 
   useEffect(() => {
     const cursor = cursorRef.current;

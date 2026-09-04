@@ -13,7 +13,10 @@ export async function GET() {
       primaryColor: settings.primaryColor || '#d4af37',
       tagline: settings.tagline || 'The Art of Invisible Luxury',
       footerConfig: settings.footerConfig || null,
-      footerText: settings.footerText || '© 2026 Eternyx. All rights reserved.'
+      footerText: settings.footerText || '© 2026 Eternyx. All rights reserved.',
+      instagramUrl: settings.instagramUrl || '',
+      facebookUrl: settings.facebookUrl || '',
+      twitterUrl: settings.twitterUrl || ''
     };
     return Response.json(publicSettings);
   } catch (error) {

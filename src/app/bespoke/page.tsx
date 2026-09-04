@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 
@@ -47,40 +47,75 @@ const RECOMMENDATION_MAP: Record<string, {
   image: string;
   description: string;
 }> = {
-  'Silken Oud': {
-    name: 'Silken Oud',
-    category: 'Luxury Blend',
-    price: '$220.00',
-    image: '/images/product-silken-oud.png',
-    description: 'An encounter between East and West. Deep Agarwood wrapped in saffron spice and Bulgarian Rose absolute.'
-  },
-  'Noir Absolu': {
-    name: 'Noir Absolu',
+  'DARK REVENGE': {
+    name: 'DARK REVENGE',
     category: 'Eau de Parfum',
-    price: '$195.00',
-    image: '/images/product-noir-absolu.png',
-    description: 'Olfactory shadow. Smoky leather, dark incense, and velvety orris root.'
+    price: '$599.00',
+    image: '/images/product-dark-revenge.png',
+    description: 'Seductive & rich. Fiery cardamom, sweet toffee accord, and deep amberwood.'
   },
-  'Lumière Rose': {
-    name: 'Lumière Rose',
-    category: 'Signature Scent',
-    price: '$240.00',
-    image: '/images/product-lumiere-rose.png',
-    description: 'Soft power. Lychee, sparkling aldehydes, and rose absolute harvested at dawn.'
-  },
-  'Vetiver Ghost': {
-    name: 'Vetiver Ghost',
-    category: 'Limited Edition',
-    price: '$280.00',
-    image: '/images/product-vetiver-ghost.png',
-    description: 'Spectrally cold. Grey pepper, Haitian vetiver, and crisp mineral musk.'
-  },
-  'Eternyx Noir': {
-    name: 'Eternyx Noir',
+  'CANDY': {
+    name: 'CANDY',
     category: 'Eau de Parfum',
-    price: '$180.00',
-    image: '/images/product-noir-absolu.png',
-    description: 'Olfactory signature of silence. Luminous cardamom combined with ebony woods.'
+    price: '$599.00',
+    image: '/images/product-candy.png',
+    description: 'Irresistible sweetness. Warm vanilla, rich coffee, and delicate white jasmine.'
+  },
+  'AZURA': {
+    name: 'AZURA',
+    category: 'Eau de Parfum',
+    price: '$599.00',
+    image: '/images/product-azura.png',
+    description: 'Aquatic freedom. Fresh apple, crisp bergamot, aquatic accords, and sensual musk.'
+  },
+  'MEMORABLE': {
+    name: 'MEMORABLE',
+    category: 'Eau de Parfum',
+    price: '$599.00',
+    image: '/images/product-memorable.png',
+    description: 'Unforgettable presence. Airy saffron, warm golden amber, and cedarwood.'
+  },
+  'CHERRY BLOW': {
+    name: 'CHERRY BLOW',
+    category: 'Eau de Parfum',
+    price: '$599.00',
+    image: '/images/product-cherry-blow.png',
+    description: 'Feminine luxury. Sweet almond, rich coffee, tuberose, and vanilla absolute.'
+  },
+  'SOVARE': {
+    name: 'SOVARE',
+    category: 'Eau de Parfum',
+    price: '$599.00',
+    image: '/images/product-sovare.png',
+    description: 'Charismatic power. Blood mandarin, zesty grapefruit, rose, and warm leather.'
+  },
+  'DREAM DROP LET': {
+    name: 'DREAM DROP LET',
+    category: 'Eau de Parfum',
+    price: '$599.00',
+    image: '/images/product-dream-drop-let.png',
+    description: 'Quiet confidence. Bergamot, lavender, ambroxan, and cedarwood.'
+  },
+  'DARK THINKER': {
+    name: 'DARK THINKER',
+    category: 'Eau de Parfum',
+    price: '$599.00',
+    image: '/images/product-dark-thinker.png',
+    description: 'Quiet intellect. Fresh bergamot, green notes, cedarwood, and warm spices.'
+  },
+  'AFTER MEET': {
+    name: 'AFTER MEET',
+    category: 'Eau de Parfum',
+    price: '$599.00',
+    image: '/images/product-after-meet.png',
+    description: 'Distinctive presence. Aromatic lavender, fresh orange blossom, lemon, and teakwood.'
+  },
+  'MY STORA': {
+    name: 'MY STORA',
+    category: 'Eau de Parfum',
+    price: '$599.00',
+    image: '/images/product-my-stora.png',
+    description: 'Life in motion. Apple, grapefruit, violet leaf, and golden amber.'
   }
 };
 
@@ -89,6 +124,19 @@ export default function BespokePage() {
   const [step, setStep] = useState<number>(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [recommendedProduct, setRecommendedProduct] = useState<typeof RECOMMENDATION_MAP[string] | null>(null);
+  const [visibleProducts, setVisibleProducts] = useState<any[]>([]);
+
+  // Fetch visible products on mount to filter recommendations
+  useEffect(() => {
+    fetch('/api/products')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setVisibleProducts(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch visible products:', err));
+  }, []);
 
   // VIP Booking states
   const [name, setName] = useState('');
@@ -105,27 +153,50 @@ export default function BespokePage() {
       setStep(step + 1);
     } else {
       // Calculate Match
-      let matchName = 'Noir Absolu'; // Default
+      let matchName = 'MEMORABLE'; // Default
       
       const vibe = updatedAnswers['vibe'];
       const accord = updatedAnswers['accord'];
       const intensity = updatedAnswers['intensity'];
 
-      if (vibe === 'nocturnal' && accord === 'wood') {
-        matchName = 'Silken Oud';
-      } else if (vibe === 'nocturnal' && accord === 'floral') {
-        matchName = 'Eternyx Noir';
-      } else if (vibe === 'ethereal' && intensity === 'skin') {
-        matchName = 'Vetiver Ghost';
-      } else if (vibe === 'sun-drenched' && accord === 'citrus') {
-        matchName = 'Lumière Rose';
-      } else if (vibe === 'nocturnal') {
-        matchName = 'Noir Absolu';
-      } else {
-        matchName = 'Eternyx Noir';
+      if (vibe === 'nocturnal') {
+        if (accord === 'wood') {
+          matchName = 'DARK REVENGE';
+        } else if (accord === 'floral') {
+          matchName = 'CHERRY BLOW';
+        } else {
+          matchName = 'SOVARE';
+        }
+      } else if (vibe === 'ethereal') {
+        if (accord === 'citrus') {
+          matchName = 'AZURA';
+        } else if (accord === 'wood') {
+          matchName = 'DARK THINKER';
+        } else {
+          matchName = 'MEMORABLE';
+        }
+      } else { // sun-drenched
+        if (accord === 'citrus') {
+          matchName = 'AFTER MEET';
+        } else if (accord === 'floral') {
+          matchName = 'CANDY';
+        } else {
+          matchName = 'MY STORA';
+        }
       }
 
-      setRecommendedProduct(RECOMMENDATION_MAP[matchName]);
+      // Enforce visibility check: if matched product is not visible, fallback to first visible product
+      const isVisible = visibleProducts.some(p => p.name.toUpperCase() === matchName);
+      if (!isVisible && visibleProducts.length > 0) {
+        const replacement = visibleProducts.find(p => RECOMMENDATION_MAP[p.name.toUpperCase()] !== undefined);
+        if (replacement) {
+          matchName = replacement.name.toUpperCase();
+        } else {
+          matchName = visibleProducts[0].name.toUpperCase();
+        }
+      }
+
+      setRecommendedProduct(RECOMMENDATION_MAP[matchName] || RECOMMENDATION_MAP['MEMORABLE']);
       setStep(QUESTIONS.length);
     }
   };
@@ -254,21 +325,21 @@ export default function BespokePage() {
       <section className="booking-section">
         <div className="booking-grid">
           <div className="booking-text">
-            <h2>Atelier Consultation</h2>
+            <h2>Bespoke Consultation</h2>
             <p>
-              For individuals seeking absolute exclusivity, ETERNYX offers private formulation commissions at our salons in Grasse, Paris, and Tokyo. 
+              For individuals seeking absolute exclusivity, ETERNYX offers private formulation commissions conducted via intimate virtual video consultations. 
             </p>
             <p>
-              In a private consult, our master perfumers spend three sessions mapping your sensory memories and skin chemistry to yield a singular recipe, registered under your name and preserved in our vault.
+              Our master perfumers spend three digital sessions mapping your sensory memories and skin chemistry to yield a singular recipe, registered under your name and preserved in our vault.
             </p>
             <div className="booking-addresses">
               <div className="addr-box">
-                <strong>Grasse Laboratory</strong>
-                <p>12 Rue de la Verrerie, 06130 Grasse</p>
+                <strong>Virtual Scent Atelier</strong>
+                <p>Private video sessions on Zoom or Google Meet</p>
               </div>
               <div className="addr-box">
-                <strong>Parisian Atelier</strong>
-                <p>42 Place des Vosges, 75003 Paris</p>
+                <strong>Online Booking</strong>
+                <p>Direct calendar scheduling after initial concierge review</p>
               </div>
             </div>
           </div>
@@ -309,15 +380,14 @@ export default function BespokePage() {
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="cli-loc">Preferred Salon</label>
+                    <label htmlFor="cli-loc">Consultation Format</label>
                     <select 
                       id="cli-loc"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                     >
-                      <option value="Paris">Paris Salon (Place des Vosges)</option>
-                      <option value="Grasse">Grasse Laboratory (French Riviera)</option>
-                      <option value="Tokyo">Tokyo Atelier (Aoyama)</option>
+                      <option value="Virtual Video">Virtual Video Consultation (Zoom/Meet)</option>
+                      <option value="Virtual Audio">Virtual Audio Call</option>
                     </select>
                   </div>
                   <div className="form-group">

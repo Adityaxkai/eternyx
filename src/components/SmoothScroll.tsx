@@ -1,13 +1,17 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 
 export default function SmoothScroll() {
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith('/admin');
+
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || isAdmin) return;
 
     const lenis = new Lenis({
       duration: 0.8,
@@ -35,7 +39,7 @@ export default function SmoothScroll() {
       gsap.ticker.remove(raf);
       delete (window as any).lenis;
     };
-  }, []);
+  }, [isAdmin]);
 
   return null;
 }

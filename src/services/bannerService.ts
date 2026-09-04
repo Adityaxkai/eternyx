@@ -54,9 +54,9 @@ export const bannerService = {
     const values: any[] = [];
     
     for (const [key, value] of Object.entries(data)) {
-      if (key !== 'id') {
+      if (key !== 'id' && value !== undefined) {
         fields.push(`${key} = ?`);
-        values.push(typeof value === 'boolean' ? (value ? 1 : 0) : value);
+        values.push(typeof value === 'boolean' ? (value ? 1 : 0) : (value ?? null));
       }
     }
     

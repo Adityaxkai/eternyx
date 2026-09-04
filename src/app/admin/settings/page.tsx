@@ -22,6 +22,9 @@ export default function SettingsPage() {
   const [footerCopyright, setFooterCopyright] = useState('');
   const [footerColumns, setFooterColumns] = useState<FooterColumn[]>([]);
   const [footerBottomLinks, setFooterBottomLinks] = useState<FooterLink[]>([]);
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [twitterUrl, setTwitterUrl] = useState('');
 
   const handleAddColumn = () => {
     setFooterColumns([...footerColumns, { title: 'New Category', links: [] }]);
@@ -163,12 +166,65 @@ export default function SettingsPage() {
           setNotifyNewInquiry(data.notifyNewInquiry !== false);
           setNotifyEmail(data.notifyEmail || data.email || '');
 
-          // Load Footer settings
+          setInstagramUrl(data.instagramUrl || '');
+          setFacebookUrl(data.facebookUrl || '');
+          setTwitterUrl(data.twitterUrl || '');
+
+          // Load Footer settings with fallback defaults
           const fc = data.footerConfig || {};
-          setFooterDisclaimer(fc.disclaimer || '');
-          setFooterCopyright(fc.copyright || data.footerText || '');
-          setFooterColumns(fc.columns || []);
-          setFooterBottomLinks(fc.bottomLinks || []);
+          
+          const defaultCols = [
+            {
+              title: 'Collections',
+              links: [
+                { label: 'CANDY', url: '/shop?q=CANDY' },
+                { label: 'AFTER MEET', url: '/shop?q=AFTER+MEET' },
+                { label: 'AZURA', url: '/shop?q=AZURA' },
+                { label: 'MEMORABLE', url: '/shop?q=MEMORABLE' },
+                { label: 'Shop All Fragrances', url: '/shop' }
+              ]
+            },
+            {
+              title: 'Services',
+              links: [
+                { label: 'Bespoke Scent Consultation', url: '/bespoke' }
+              ]
+            },
+            {
+              title: 'Brand Story',
+              links: [
+                { label: 'The Heritage', url: '/story' },
+                { label: 'Olfactory Scent Journal', url: '/journal' }
+              ]
+            },
+            {
+              title: 'Support & Store',
+              links: [
+                { label: 'Contact Us', url: '/contact' }
+              ]
+            }
+          ];
+          const defaultBottom = [
+            { label: 'Privacy Policy', url: '#' },
+            { label: 'Terms of Sale', url: '#' },
+            { label: 'Legal & Regulatory', url: '#' },
+            { label: 'Site Map', url: '#' }
+          ];
+
+          setFooterDisclaimer(fc.disclaimer || 'ETERNYX fragrances are handcrafted in Grasse, France, using organically-sourced natural materials and pure botanical essences. Spontaneous scent dispersion and natural sediment are hallmarks of artisan quality. Free standard shipping applies to all orders above $250. Individual results and scent endurance may vary depending on ambient humidity and skin temperature.');
+          setFooterCopyright(fc.copyright || data.footerText || '© 2026 ETERNYX Luxury. All rights reserved.');
+          
+          if (fc.columns && fc.columns.length > 0) {
+            setFooterColumns(fc.columns);
+          } else {
+            setFooterColumns(defaultCols);
+          }
+          
+          if (fc.bottomLinks && fc.bottomLinks.length > 0) {
+            setFooterBottomLinks(fc.bottomLinks);
+          } else {
+            setFooterBottomLinks(defaultBottom);
+          }
         }
         setLoading(false);
       })
@@ -190,6 +246,9 @@ export default function SettingsPage() {
             columns: footerColumns,
             bottomLinks: footerBottomLinks
           },
+          instagramUrl,
+          facebookUrl,
+          twitterUrl,
           freeShippingThreshold, standardRate, expressRate, shippingOrigin,
           taxEnabled, taxRate, taxLabel, taxIncluded,
           notifyNewOrder, notifyLowStock, notifyNewReview, notifyNewBooking, notifyNewInquiry, notifyEmail,
@@ -245,7 +304,7 @@ export default function SettingsPage() {
               <>
                 <section className="settings-card">
                   <h2>Store Details</h2>
-                  <p className="section-desc">Basic information about your boutique.</p>
+                  <p className="section-desc">Basic information about your store.</p>
                   <div className="form-group">
                     <label htmlFor="set-name">Store Name</label>
                     <input id="set-name" type="text" value={storeName} onChange={e => setStoreName(e.target.value)} />
@@ -268,6 +327,7 @@ export default function SettingsPage() {
                   <div className="form-group">
                     <label htmlFor="set-currency">Primary Currency</label>
                     <select id="set-currency" value={currency} onChange={e => setCurrency(e.target.value)}>
+                      <option value="INR">INR (₹) – Indian Rupee</option>
                       <option value="USD">USD ($) – United States Dollar</option>
                       <option value="EUR">EUR (€) – Euro</option>
                       <option value="GBP">GBP (£) – British Pound</option>
@@ -341,16 +401,16 @@ export default function SettingsPage() {
                   <p className="section-desc">Shipping cost configuration.</p>
                   <div className="form-row">
                     <div className="form-group">
-                      <label htmlFor="set-standard">Standard Rate ($)</label>
+                      <label htmlFor="set-standard">Standard Rate (₹)</label>
                       <input id="set-standard" type="number" min="0" value={standardRate} onChange={e => setStandardRate(e.target.value)} />
                     </div>
                     <div className="form-group">
-                      <label htmlFor="set-express">Express Rate ($)</label>
+                      <label htmlFor="set-express">Express Rate (₹)</label>
                       <input id="set-express" type="number" min="0" value={expressRate} onChange={e => setExpressRate(e.target.value)} />
                     </div>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="set-free">Free Shipping Threshold ($)</label>
+                    <label htmlFor="set-free">Free Shipping Threshold (₹)</label>
                     <input id="set-free" type="number" min="0" value={freeShippingThreshold} onChange={e => setFreeShippingThreshold(e.target.value)} />
                     <p className="field-hint">Orders above this amount qualify for complimentary shipping.</p>
                   </div>
@@ -440,7 +500,7 @@ export default function SettingsPage() {
                   <p className="section-desc">Manage site-wide footer notes and copyright disclaimers.</p>
 
                   <div className="form-group">
-                    <label htmlFor="footer-disclaimer-input">Boutique Disclaimer / Sourcing Notes</label>
+                    <label htmlFor="footer-disclaimer-input">Sourcing Disclaimer & Notes</label>
                     <textarea 
                       id="footer-disclaimer-input"
                       value={footerDisclaimer} 
@@ -459,6 +519,44 @@ export default function SettingsPage() {
                       value={footerCopyright} 
                       onChange={e => setFooterCopyright(e.target.value)} 
                       placeholder="© 2026 ETERNYX Luxury. All rights reserved." 
+                    />
+                  </div>
+                </section>
+
+                <section className="settings-card">
+                  <h2>Social Media Links</h2>
+                  <p className="section-desc">Manage site-wide social media profile links. Leaving a field blank will hide the icon in the footer.</p>
+                  
+                  <div className="form-group">
+                    <label htmlFor="ig-url-input">Instagram URL</label>
+                    <input 
+                      id="ig-url-input"
+                      type="text" 
+                      value={instagramUrl} 
+                      onChange={e => setInstagramUrl(e.target.value)} 
+                      placeholder="https://instagram.com/yourbrand" 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="fb-url-input">Facebook URL</label>
+                    <input 
+                      id="fb-url-input"
+                      type="text" 
+                      value={facebookUrl} 
+                      onChange={e => setFacebookUrl(e.target.value)} 
+                      placeholder="https://facebook.com/yourbrand" 
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label htmlFor="tw-url-input">Twitter / X URL</label>
+                    <input 
+                      id="tw-url-input"
+                      type="text" 
+                      value={twitterUrl} 
+                      onChange={e => setTwitterUrl(e.target.value)} 
+                      placeholder="https://twitter.com/yourbrand" 
                     />
                   </div>
                 </section>

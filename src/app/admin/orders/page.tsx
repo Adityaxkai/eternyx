@@ -313,7 +313,7 @@ export default function OrdersPage() {
                 </div>
                 <div className="col-date">{order.date}</div>
                 <div className="col-items">{order.items_count} items</div>
-                <div className="col-total">${Number(order.total).toFixed(2)}</div>
+                <div className="col-total">₹{Number(order.total).toFixed(2)}</div>
                 <div className="col-status">
                   <span className={`status-badge ${order.status.toLowerCase()}`}>
                     {order.status}
@@ -330,7 +330,7 @@ export default function OrdersPage() {
 
       {/* Slide-over Drawer for Order Details */}
       <div className={`drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)} />
-      <div className={`drawer-panel ${isDrawerOpen ? 'open' : ''}`}>
+      <div className={`drawer-panel ${isDrawerOpen ? 'open' : ''}`} data-lenis-prevent="true">
         {selectedOrder && (
           <>
             <div className="drawer-header">
@@ -546,7 +546,7 @@ export default function OrdersPage() {
                         <h4>{item.name}</h4>
                         <p className="manifest-meta">Size: {item.size} | Qty: {item.quantity}</p>
                       </div>
-                      <p className="manifest-price">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="manifest-price">₹{(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                   ))}
                 </div>
@@ -562,7 +562,7 @@ export default function OrdersPage() {
                 )}
                 <div className="breakdown-row grand-total">
                   <span>Grand Total Paid:</span>
-                  <strong>${Number(selectedOrder.total).toFixed(2)}</strong>
+                  <strong>₹{Number(selectedOrder.total).toFixed(2)}</strong>
                 </div>
               </div>
             </div>
@@ -782,10 +782,28 @@ export default function OrdersPage() {
         .drawer-content {
           flex: 1;
           overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
           display: flex;
           flex-direction: column;
           gap: 24px;
           padding-right: 5px;
+          padding-bottom: 40px;
+        }
+
+        .drawer-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .drawer-content::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+        }
+        .drawer-content::-webkit-scrollbar-thumb {
+          background: rgba(212, 175, 55, 0.3);
+          border-radius: 3px;
+        }
+        .drawer-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(212, 175, 55, 0.6);
         }
 
         .info-card {

@@ -143,7 +143,7 @@ export default function CustomersPage() {
 
       {/* Slide-over Profile Details Drawer */}
       <div className={`drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)} />
-      <div className={`drawer-panel ${isDrawerOpen ? 'open' : ''}`}>
+      <div className={`drawer-panel ${isDrawerOpen ? 'open' : ''}`} data-lenis-prevent="true">
         <div className="drawer-header">
           <h2>Customer Profile</h2>
           <button className="drawer-close" onClick={() => setIsDrawerOpen(false)}>&times;</button>
@@ -405,9 +405,27 @@ export default function CustomersPage() {
         .drawer-content {
           flex: 1;
           overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
           display: flex;
           flex-direction: column;
           gap: 24px;
+          padding-bottom: 40px;
+        }
+
+        .drawer-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .drawer-content::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+        }
+        .drawer-content::-webkit-scrollbar-thumb {
+          background: rgba(212, 175, 55, 0.3);
+          border-radius: 3px;
+        }
+        .drawer-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(212, 175, 55, 0.6);
         }
 
         .info-card {

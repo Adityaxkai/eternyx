@@ -2,38 +2,6 @@
 
 import { useState } from 'react';
 
-interface Boutique {
-  city: string;
-  name: string;
-  address: string;
-  hours: string;
-  phone: string;
-}
-
-const BOUTIQUES: Boutique[] = [
-  {
-    city: 'Paris',
-    name: 'Salon Place des Vosges',
-    address: '42 Place des Vosges, 75003 Paris, France',
-    hours: 'Tuesday – Saturday: 11:00 – 19:00 (By Appointment)',
-    phone: '+33 (0) 1 42 77 88 99'
-  },
-  {
-    city: 'Grasse',
-    name: 'The Formulation Laboratory',
-    address: '12 Rue de la Verrerie, 06130 Grasse, France',
-    hours: 'Monday – Friday: 09:00 – 17:00 (Private Consultations Only)',
-    phone: '+33 (0) 4 93 36 22 11'
-  },
-  {
-    city: 'Tokyo',
-    name: 'Aoyama Atelier',
-    address: '5-10-1 Minami-Aoyama, Minato-ku, Tokyo 107-0062, Japan',
-    hours: 'Wednesday – Sunday: 12:00 – 20:00 (By Appointment)',
-    phone: '+81 (0) 3 5468 1122'
-  }
-];
-
 export default function ContactPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -49,10 +17,10 @@ export default function ContactPage() {
     setSubmitting(true);
     setSubmitError('');
     try {
-      const res = await fetch('/api/contact', {
+      const res = await fetch('/api/inquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, inquiryType, message }),
+        body: JSON.stringify({ name, email, type: inquiryType, message }),
       });
       if (res.ok) {
         setSuccess(true);
@@ -61,11 +29,11 @@ export default function ContactPage() {
         setMessage('');
       } else {
         const data = await res.json();
-        setSubmitError(data.error || 'Failed to send inquiry. Please try again.');
+        setSubmitError(data.error || 'Failed to dispatch inquiry.');
       }
     } catch (err) {
-      console.error('Contact submit error:', err);
-      setSubmitError('Network error. Please try again.');
+      console.error(err);
+      setSubmitError('Failed to connect to the server.');
     } finally {
       setSubmitting(false);
     }
@@ -76,13 +44,13 @@ export default function ContactPage() {
       {/* Hero Header */}
       <section className="contact-hero">
         <p className="contact-eyebrow">Client Care</p>
-        <h1 className="contact-title">Contact & Boutiques</h1>
+        <h1 className="contact-title">Contact Us</h1>
         <p className="contact-subtitle">
-          Whether seeking details on our collections, inquiring about bespoke formulation commissions, or reserving an appointment at our salons, our concierge is at your disposal.
+          Whether seeking details on our collections, inquiring about bespoke formulation commissions, or requesting digital scent guidance, our online concierge is at your disposal.
         </p>
       </section>
 
-      {/* Main Grid: Form Left, Boutiques Right */}
+      {/* Main Grid: Form Left, Concierge Right */}
       <section className="contact-grid-section">
         <div className="contact-grid">
           
@@ -159,35 +127,51 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Boutique Directory List */}
+          {/* Digital Concierge Details */}
           <div className="boutiques-col">
-            <h2 className="boutiques-title">Our Salons</h2>
-            <p className="boutiques-desc">Visit us in person for a sensory consultation.</p>
+            <h2 className="boutiques-title">Customer Concierge</h2>
+            <p className="boutiques-desc">For order inquiries, digital advice, or custom consultations.</p>
             
             <div className="boutique-list">
-              {BOUTIQUES.map((bout, idx) => (
-                <div key={idx} className="boutique-card glass-card">
-                  <div className="card-top">
-                    <span className="boutique-city">{bout.city}</span>
-                    <h3 className="boutique-name">{bout.name}</h3>
+              <div className="boutique-card glass-card">
+                <div className="card-top">
+                  <span className="boutique-city">Digital Support</span>
+                  <h3 className="boutique-name">Online Client Care</h3>
+                </div>
+                
+                <div className="card-details">
+                  <div className="detail-row">
+                    <span className="label">Hours</span>
+                    <p className="value">Monday – Saturday: 09:00 – 19:00 (GMT)</p>
                   </div>
-                  
-                  <div className="card-details">
-                    <div className="detail-row">
-                      <span className="label">Address</span>
-                      <p className="value">{bout.address}</p>
-                    </div>
-                    <div className="detail-row">
-                      <span className="label">Hours</span>
-                      <p className="value">{bout.hours}</p>
-                    </div>
-                    <div className="detail-row">
-                      <span className="label">Telephone</span>
-                      <p className="value phone-value">{bout.phone}</p>
-                    </div>
+                  <div className="detail-row">
+                    <span className="label">Client Email</span>
+                    <p className="value">concierge@eternyx.com</p>
+                  </div>
+                  <div className="detail-row">
+                    <span className="label">Corporate</span>
+                    <p className="value">info@eternyx.com</p>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="boutique-card glass-card">
+                <div className="card-top">
+                  <span className="boutique-city">Bespoke Guidance</span>
+                  <h3 className="boutique-name">Virtual Consultations</h3>
+                </div>
+                
+                <div className="card-details">
+                  <div className="detail-row">
+                    <span className="label">Availability</span>
+                    <p className="value">By reservation only. Schedule a virtual consultation using our bespoke booking form.</p>
+                  </div>
+                  <div className="detail-row">
+                    <span className="label">Platform</span>
+                    <p className="value">Private Zoom / Google Meet video sessions</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

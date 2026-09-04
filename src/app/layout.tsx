@@ -11,6 +11,7 @@ import Script from "next/script";
 import StorefrontFooterWrapper from "@/components/StorefrontFooterWrapper";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://eternyx.com'),
   title: "ETERNYX | Silence is Luxury",
   description: "A professional luxury perfume brand website.",
 };

@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Reel } from '@/services/reelService';
 
+const isDirectVideo = (url: string) => {
+  if (!url) return false;
+  if (url.includes('instagram.com') || url.includes('facebook.com') || url.includes('tiktok.com') || url.includes('youtube.com') || url.includes('youtu.be')) return false;
+  return url.startsWith('http') || url.startsWith('/') || url.endsWith('.mp4');
+};
+
 export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +27,7 @@ export default function ReelsPage() {
   const [formActive, setFormActive] = useState(true);
 
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -104,51 +111,87 @@ export default function ReelsPage() {
       setFormThumbnailUrl('');
       setFormHandle('@');
       setFormLikes('10K');
-      setFormProductTag('Silken Oud');
+      setFormProductTag('CANDY');
       setFormActive(true);
     }
     setIsDrawerOpen(true);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': file.type || 'image/jpeg',
+          'x-filename': file.name,
+        },
+        body: file,
       });
 
       if (res.ok) {
         const data = await res.json();
         setFormThumbnailUrl(data.url);
       } else {
-        alert('Failed to upload thumbnail.');
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to upload thumbnail.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Upload error.');
+      alert(err.message || 'Upload error.');
     } finally {
       setUploading(false);
     }
   };
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingVideo(true);
+    try {
+      const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': file.type || 'video/mp4',
+          'x-filename': file.name,
+        },
+        body: file,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setFormVideoUrl(data.url);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to upload video.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Upload error.');
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formHandle || !formVideoUrl || !formThumbnailUrl) {
-      alert('Please fill in Handle, Video URL, and Thumbnail.');
+    if (!formHandle) {
+      alert('Please fill in Handle.');
+      return;
+    }
+    if (!formVideoUrl) {
+      alert('Please upload a video file (.mp4).');
       return;
     }
 
     setSubmitting(true);
     const payload = {
       video_url: formVideoUrl,
-      thumbnail_url: formThumbnailUrl,
+      thumbnail_url: formThumbnailUrl || '',
       handle: formHandle,
       likes: formLikes,
       product_tag: formProductTag,
@@ -234,8 +277,16 @@ export default function ReelsPage() {
                         <div className="td col-image">
                           {reel.thumbnail_url ? (
                             <img src={reel.thumbnail_url} alt={reel.handle} className="row-img portrait" referrerPolicy="no-referrer" />
+                          ) : isDirectVideo(reel.video_url) ? (
+                            <video src={reel.video_url} preload="metadata" className="row-img portrait" style={{ objectFit: 'cover' }} />
                           ) : (
-                            <div className="row-img-placeholder portrait"></div>
+                            <div className="row-img-placeholder portrait" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#1c1c1c' }}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                              </svg>
+                            </div>
                           )}
                         </div>
                         <div className="td col-handle">
@@ -275,7 +326,7 @@ export default function ReelsPage() {
 
       {/* Sliding Form Drawer */}
       <div className={`drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)}>
-        <div className={`drawer-content ${isDrawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <div className={`drawer-content ${isDrawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()} data-lenis-prevent="true">
           <div className="drawer-header">
             <h2>{editingReel ? 'Edit Video Reel' : 'Add New Video Reel'}</h2>
             <button className="close-btn" onClick={() => setIsDrawerOpen(false)}>
@@ -315,47 +366,108 @@ export default function ReelsPage() {
                   type="text" 
                   value={formProductTag} 
                   onChange={(e) => setFormProductTag(e.target.value)} 
-                  placeholder="e.g. Silken Oud"
+                  placeholder="e.g. CANDY"
                   required
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label>Video URL</label>
+              <label>Upload Video File (.mp4)</label>
               <input 
-                type="url" 
-                value={formVideoUrl} 
-                onChange={(e) => setFormVideoUrl(e.target.value)} 
-                placeholder="https://instagram.com/p/... or TikTok URL"
-                required
+                type="file" 
+                accept="video/mp4,video/*" 
+                onChange={handleVideoUpload} 
+                id="reel-video-upload" 
+                style={{ display: 'none' }}
               />
+              
+              {formVideoUrl ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  background: 'rgba(212, 175, 55, 0.08)',
+                  border: '1px solid rgba(212, 175, 55, 0.3)',
+                  borderRadius: '6px',
+                  gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                    <div style={{ 
+                      width: '36px', 
+                      height: '36px', 
+                      borderRadius: '4px', 
+                      background: '#1a1a1a', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#d4af37">
+                        <polygon points="5,3 19,12 5,21"/>
+                      </svg>
+                    </div>
+                    <div style={{ overflow: 'hidden' }}>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#fff', fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        {formVideoUrl.split('/').pop() || 'Video file uploaded'}
+                      </p>
+                      <span style={{ fontSize: '0.7rem', color: '#d4af37' }}>✓ Video ready</span>
+                    </div>
+                  </div>
+                  <label 
+                    htmlFor="reel-video-upload" 
+                    style={{ 
+                      padding: '6px 14px', 
+                      cursor: 'pointer', 
+                      fontSize: '0.75rem', 
+                      borderRadius: '4px',
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      color: '#fff',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {uploadingVideo ? 'Uploading...' : 'Replace Video'}
+                  </label>
+                </div>
+              ) : (
+                <label 
+                  htmlFor="reel-video-upload" 
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '8px', 
+                    padding: '24px 16px', 
+                    border: '1.5px dashed rgba(255,255,255,0.2)', 
+                    borderRadius: '8px', 
+                    background: 'rgba(255,255,255,0.02)', 
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    textAlign: 'center'
+                  }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" strokeWidth="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <div>
+                    <span style={{ color: '#d4af37', fontWeight: 500, fontSize: '0.85rem' }}>
+                      {uploadingVideo ? 'Uploading video file...' : 'Click to Upload Video (.mp4)'}
+                    </span>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
+                      Select an MP4 video file to play on hover
+                    </p>
+                  </div>
+                </label>
+              )}
             </div>
 
-            <div className="form-group">
-              <label>Video Thumbnail Image</label>
-              <div className="image-upload-wrapper">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleFileUpload} 
-                  id="reel-thumbnail-upload" 
-                  style={{ display: 'none' }}
-                />
-                <label htmlFor="reel-thumbnail-upload" className="upload-box" style={{ height: '180px' }}>
-                  {uploading ? (
-                    <span className="spinner">Uploading...</span>
-                  ) : formThumbnailUrl ? (
-                    <img src={formThumbnailUrl} alt="Thumbnail Preview" className="upload-preview" style={{ objectFit: 'contain' }} referrerPolicy="no-referrer" />
-                  ) : (
-                    <span className="upload-placeholder">Click to upload Video Thumbnail</span>
-                  )}
-                </label>
-                {formThumbnailUrl && (
-                  <p className="image-url-text">URL: {formThumbnailUrl}</p>
-                )}
-              </div>
-            </div>
+
 
             <div className="form-group toggle-group">
               <label>Active (Visible on homepage)</label>
@@ -579,10 +691,11 @@ export default function ReelsPage() {
         .drawer-content {
           position: fixed;
           top: 0;
-          right: -450px;
+          right: -480px;
           width: 100%;
-          max-width: 450px;
-          height: 100%;
+          max-width: 480px;
+          height: 100vh;
+          max-height: 100vh;
           background: #0d0d0d;
           border-left: 1px solid rgba(255, 255, 255, 0.05);
           box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
@@ -592,6 +705,23 @@ export default function ReelsPage() {
           display: flex;
           flex-direction: column;
           overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+        }
+
+        .drawer-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .drawer-content::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+        }
+        .drawer-content::-webkit-scrollbar-thumb {
+          background: rgba(212, 175, 55, 0.3);
+          border-radius: 3px;
+        }
+        .drawer-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(212, 175, 55, 0.6);
         }
 
         .drawer-content.open {
@@ -602,9 +732,10 @@ export default function ReelsPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 30px;
+          margin-bottom: 24px;
           padding-bottom: 15px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          flex-shrink: 0;
         }
 
         .drawer-header h2 {
@@ -633,7 +764,8 @@ export default function ReelsPage() {
           display: flex;
           flex-direction: column;
           gap: 20px;
-          flex: 1;
+          padding-bottom: 40px;
+          flex-shrink: 0;
         }
 
         .form-row {

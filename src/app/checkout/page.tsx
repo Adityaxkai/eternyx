@@ -826,7 +826,7 @@ function CheckoutContent() {
                           +
                         </button>
                       </div>
-                      <span className="item-price">${(item.price * item.quantity).toLocaleString()}</span>
+                      <span className="item-price">₹{(item.price * item.quantity).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -858,7 +858,7 @@ function CheckoutContent() {
                 Coupon <strong>{appliedDiscount.code}</strong> applied ({
                   appliedDiscount.type === 'Percentage' 
                     ? `${appliedDiscount.value}% discount` 
-                    : `$${appliedDiscount.value} discount`
+                    : `₹${appliedDiscount.value} discount`
                 })
               </p>
             )}
@@ -866,12 +866,12 @@ function CheckoutContent() {
             <div className="price-breakdown">
               <div className="breakdown-row">
                 <span>Subtotal</span>
-                <span>${cartTotal.toLocaleString()}</span>
+                <span>₹{cartTotal.toLocaleString()}</span>
               </div>
               {appliedDiscount && (
                 <div className="breakdown-row discount">
                   <span>Discount ({appliedDiscount.code})</span>
-                  <span>-${discountAmount.toLocaleString()}</span>
+                  <span>-₹{discountAmount.toLocaleString()}</span>
                 </div>
               )}
               <div className="breakdown-row">
@@ -880,7 +880,7 @@ function CheckoutContent() {
               </div>
               <div className="breakdown-row total">
                 <span>Total Amount Due</span>
-                <span className="total-price">${finalTotal.toLocaleString()}</span>
+                <span className="total-price">₹{finalTotal.toLocaleString()}</span>
               </div>
             </div>
           </div>

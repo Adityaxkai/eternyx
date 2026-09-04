@@ -41,6 +41,159 @@ function CharacterReveal({ text, className = '' }: { text: string; className?: s
     </span>
   );
 }
+function ReelCard({ reel }: { reel: any }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [useFallbackImage, setUseFallbackImage] = useState(false);
+
+  // Helper to determine if the video is a direct play video link (like an .mp4)
+  const isDirectVideo = (url: string) => {
+    if (!url || url === '#') return false;
+    if (url.includes('instagram.com') || url.includes('facebook.com') || url.includes('tiktok.com') || url.includes('youtube.com') || url.includes('youtu.be')) return false;
+    return url.startsWith('http') || url.startsWith('/') || url.endsWith('.mp4');
+  };
+
+  const hasDirectVideo = isDirectVideo(reel.video);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    if (hasDirectVideo && videoRef.current && !useFallbackImage) {
+      videoRef.current.muted = true;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          if (err.name !== 'AbortError') {
+            console.warn("Video hover playback failed:", err);
+          }
+        });
+      }
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    if (hasDirectVideo && videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  return (
+    <div 
+      className="reel-card"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{ display: 'block', position: 'relative', cursor: 'default' }}
+    >
+      <div className="reel-thumb">
+        {hasDirectVideo && !useFallbackImage ? (
+          <video
+            ref={videoRef}
+            src={reel.video}
+            loop
+            muted
+            playsInline
+            preload="auto"
+            onError={() => setUseFallbackImage(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              position: 'absolute',
+              inset: 0,
+              zIndex: 1,
+              transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+              transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          />
+        ) : (
+          /* Render cover thumbnail or premium placeholder */
+          <div 
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              position: 'absolute', 
+              inset: 0,
+              zIndex: 1,
+              transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+              transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              background: 'linear-gradient(135deg, #161616 0%, #0d0d0d 100%)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: '12px',
+              overflow: 'hidden'
+            }}
+          >
+            {reel.image ? (
+              <img
+                src={reel.image}
+                alt={reel.handle}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              /* Glassmorphic placeholder */
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  padding: '24px',
+                  textAlign: 'center',
+                  background: 'rgba(255,255,255,0.02)',
+                  backdropFilter: 'blur(8px)',
+                  borderRadius: '12px',
+                  width: '80%',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                {/* Instagram Icon */}
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'rgba(200,165,100,0.8)' }}>
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.45)' }}>Watch Reel</span>
+              </div>
+            )}
+          </div>
+        )}
+        <div className="reel-overlay" style={{ zIndex: 2, pointerEvents: 'none' }}>
+          <div 
+            className="reel-play" 
+            style={{ 
+              opacity: isHovered ? (hasDirectVideo ? 0 : 1) : 0,
+              transform: isHovered ? 'scale(1)' : 'scale(0.8)', 
+              transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              alignSelf: 'center',
+              marginTop: 'auto',
+              marginBottom: 'auto'
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+              <polygon points="5,3 19,12 5,21"/>
+            </svg>
+          </div>
+          <div className="reel-info">
+            <span className="reel-product-tag">{reel.product}</span>
+            <p className="reel-handle">{reel.handle}</p>
+            <p className="reel-likes">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              {reel.likes}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function Home() {
   const [currentBanner, setCurrentBanner] = useState(0);
@@ -61,24 +214,16 @@ export default function Home() {
   ];
 
   const LOCAL_PRODUCTS = [
-    { name: "Silken Oud", category: "Luxury Blend", price: "$220", image: "/images/product-silken-oud.png", badge: "Bestseller" },
-    { name: "Noir Absolu", category: "Eau de Parfum", price: "$195", image: "/images/product-noir-absolu.png", badge: null },
-    { name: "Lumière Rose", category: "Signature Scent", price: "$240", image: "/images/product-lumiere-rose.png", badge: "New" },
-    { name: "Vetiver Ghost", category: "Limited Edition", price: "$280", image: "/images/product-vetiver-ghost.png", badge: "Ltd. Edition" },
-    { name: "Eternyx Noir", category: "Eau de Parfum", price: "$180", image: "/images/product-noir-absolu.png", badge: null },
-  ];
-
-  const LOCAL_REELS = [
-    { handle: "@aria.luxe", likes: "84K", product: "Silken Oud", image: "/images/reel-1.png" },
-    { handle: "@noir.collective", likes: "31K", product: "Noir Absolu", image: "/images/reel-2.png" },
-    { handle: "@scentedmornings", likes: "62K", product: "Lumière Rose", image: "/images/reel-3.png" },
-    { handle: "@maison.de.parfum", likes: "47K", product: "Vetiver Ghost", image: "/images/reel-4.png" },
-    { handle: "@eternyx.official", likes: "120K", product: "Eternyx Noir", image: "/images/reel-5.png" },
+    { name: "CANDY", category: "Eau de Parfum", price: "₹599", image: "/images/product-candy.png", badge: "BESTSELLER" },
+    { name: "AFTER MEET", category: "Eau de Parfum", price: "₹599", image: "/images/product-after-meet.png", badge: "NEW" },
+    { name: "AZURA", category: "Eau de Parfum", price: "₹599", image: "/images/product-azura.png", badge: null },
+    { name: "MEMORABLE", category: "Eau de Parfum", price: "₹599", image: "/images/product-memorable.png", badge: "SIGNATURE" },
+    { name: "CHERRY BLOW", category: "Eau de Parfum", price: "₹599", image: "/images/product-cherry-blow.png", badge: "LUXURY" },
   ];
 
   const [banners, setBanners] = useState<{ image_url: string; mobile_image_url: string }[]>(LOCAL_BANNERS);
   const [alchemyProducts, setAlchemyProducts] = useState<Product[]>(LOCAL_PRODUCTS);
-  const [reels, setReels] = useState<{ handle: string; likes: string; product: string; image: string }[]>(LOCAL_REELS);
+  const [reels, setReels] = useState<{ handle: string; likes: string; product: string; image: string; video?: string }[]>([]);
   const [isMobile, setIsMobile] = useState(false);
 
   // Responsive device check
@@ -110,7 +255,7 @@ export default function Home() {
             ...p,
             name: p.name,
             category: p.category,
-            price: typeof p.price === 'number' ? `$${p.price}` : p.price,
+            price: typeof p.price === 'number' ? `₹${p.price}` : p.price,
             image: p.image_url || '/images/hero.png',
             badge: p.badge || null
           }));
@@ -122,13 +267,16 @@ export default function Home() {
     fetch('/api/reels')
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          const mapped = data.map((r: any) => ({
-            handle: r.handle,
-            likes: r.likes,
-            product: r.product_tag,
-            image: r.thumbnail_url || '/images/reel-1.png'
-          }));
+        if (Array.isArray(data)) {
+          const mapped = data.map((r: any) => {
+            return {
+              handle: r.handle,
+              likes: r.likes,
+              product: r.product_tag,
+              image: r.thumbnail_url || '',
+              video: r.video_url || '#'
+            };
+          });
           setReels(mapped);
         }
       })
@@ -727,57 +875,32 @@ export default function Home() {
           </section>
         )}
 
-        {/* Self-drawing Line Divider */}
-        <div className="container">
-          <div className="gold-divider scroll-draw-line" />
-        </div>
-
-        {/* Influencer Reels Section */}
-        <section className="reels-section">
-          <div className="reels-header">
-            <div>
-              <p className="reels-eyebrow">As Seen On</p>
-              <h2 className="reels-title scroll-reveal-text">
-                <TextReveal text="Featured By Our Community" />
-              </h2>
+        {/* Influencer Reels Section - only display if real reels added by admin */}
+        {reels.length > 0 && (
+          <>
+            <div className="container">
+              <div className="gold-divider scroll-draw-line" />
             </div>
-            <a href="#" className="reels-view-all">View All →</a>
-          </div>
-          <div className="reels-track-wrap">
-            <div className="reels-track" id="reels-track">
-              {reels.map((reel, i) => (
-                <div className="reel-card" key={i}>
-                  <div className="reel-thumb">
-                    <Image
-                      src={reel.image}
-                      alt={reel.handle}
-                      width={400}
-                      height={700}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    <div className="reel-overlay">
-                      <div className="reel-play">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
-                          <polygon points="5,3 19,12 5,21"/>
-                        </svg>
-                      </div>
-                      <div className="reel-info">
-                        <span className="reel-product-tag">{reel.product}</span>
-                        <p className="reel-handle">{reel.handle}</p>
-                        <p className="reel-likes">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                          </svg>
-                          {reel.likes}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+            <section className="reels-section">
+              <div className="reels-header">
+                <div>
+                  <p className="reels-eyebrow">As Seen On</p>
+                  <h2 className="reels-title scroll-reveal-text">
+                    <TextReveal text="Featured By Our Community" />
+                  </h2>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+                <a href="#" className="reels-view-all">View All →</a>
+              </div>
+              <div className="reels-track-wrap">
+                <div className="reels-track" id="reels-track">
+                  {reels.map((reel, i) => (
+                    <ReelCard reel={reel} key={i} />
+                  ))}
+                </div>
+              </div>
+            </section>
+          </>
+        )}
 
       </main>
 

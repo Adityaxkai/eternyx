@@ -172,7 +172,7 @@ export default function FloatingCart() {
     };
   }, [mounted]);
 
-  if (pathname === '/checkout') return null;
+  if (pathname === '/checkout' || pathname?.startsWith('/admin')) return null;
 
   // Safe client-side count defaults
   const displayCount = mounted ? cartCount : 0;

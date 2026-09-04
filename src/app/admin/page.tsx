@@ -116,7 +116,7 @@ export default function AdminDashboard() {
           <div className="dashboard-grid">
             <div className="stat-card">
               <div className="stat-label">Total Revenue</div>
-              <div className="stat-value">${stats.revenue.toLocaleString()}</div>
+              <div className="stat-value">₹{stats.revenue.toLocaleString()}</div>
               <div className="stat-trend positive">Live updates active</div>
             </div>
             <div className="stat-card">
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           <td>{order.date}</td>
-                          <td className="order-total">${order.total.toLocaleString()}</td>
+                          <td className="order-total">₹{order.total.toLocaleString()}</td>
                           <td>
                             <span className={`status-badge ${order.status.toLowerCase()}`}>
                               {order.status}

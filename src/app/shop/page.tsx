@@ -27,7 +27,7 @@ function ShopContent() {
           const mapped = data.map((p: any) => ({
             name: p.name,
             category: p.category,
-            price: typeof p.price === 'number' ? `$${p.price}` : p.price,
+            price: typeof p.price === 'number' ? `₹${p.price}` : p.price,
             image: p.image_url || '/images/hero.png',
             badge: p.badge || null,
             additional_images: p.additional_images || [],

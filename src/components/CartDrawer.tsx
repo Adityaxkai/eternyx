@@ -190,7 +190,7 @@ export default function CartDrawer() {
                           +
                         </button>
                       </div>
-                      <p className="item-price">${(item.price * item.quantity).toLocaleString()}</p>
+                      <p className="item-price">₹{(item.price * item.quantity).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export default function CartDrawer() {
                     {appliedDiscount.type === 'Percentage'
                       ? `${appliedDiscount.value}% off`
                       : appliedDiscount.type === 'Fixed Amount'
-                      ? `$${appliedDiscount.value} off`
+                      ? `₹${appliedDiscount.value} off`
                       : 'Free Shipping'}
                     )
                   </p>
@@ -262,17 +262,17 @@ export default function CartDrawer() {
             <div className="cart-summary-totals">
               <div className="summary-row">
                 <span>Subtotal</span>
-                <span>${cartTotal.toLocaleString()}</span>
+                <span>₹{cartTotal.toLocaleString()}</span>
               </div>
               {appliedDiscount && (
                 <div className="summary-row discount-row">
                   <span>Discount ({appliedDiscount.code})</span>
-                  <span className="discount-amount">-${discountAmount.toLocaleString()}</span>
+                  <span className="discount-amount">-₹{discountAmount.toLocaleString()}</span>
                 </div>
               )}
               <div className="summary-row total-row">
                 <span>Total</span>
-                <span className="total-price">${finalTotal.toLocaleString()}</span>
+                <span className="total-price">₹{finalTotal.toLocaleString()}</span>
               </div>
             </div>
 

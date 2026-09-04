@@ -15,6 +15,33 @@ export interface Product {
   sizes: { size: string; stock: number }[];
   additional_images?: string[];
   created_at?: string;
+  hook?: string;
+  specs?: {
+    longevity?: string;
+    projection?: string;
+    season?: string;
+    occasion?: string;
+    gender?: string;
+    made_in?: string;
+  };
+  key_features?: Record<string, string>;
+  fragrance_journey?: {
+    opening: string;
+    heart: string;
+    dry_down: string;
+  };
+  perfect_for?: string[];
+  faqs?: { question: string; answer: string }[];
+  cross_sells?: string[];
+  upsell?: string;
+  amazon_bullets?: string[];
+  emotional_points?: string[];
+  objection_handling?: { question: string; answer: string }[];
+  seo_title?: string;
+  seo_description?: string;
+  shopify_keywords?: string[];
+  image_alt?: string[];
+  product_tags?: string[];
 }
 
 export interface OrderItem {

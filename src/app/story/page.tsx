@@ -22,9 +22,9 @@ const timelineEvents: TimelineEvent[] = [
   },
   {
     year: '2024',
-    title: 'The Parisian Salon',
-    description: 'Opened our flagship formulation laboratory in Paris. A private, reservation-only sanctuary where clients could consult directly with master perfumers away from public view.',
-    location: 'Paris, France'
+    title: 'The Formulation Studio',
+    description: 'Opened our signature virtual formulation studio. A private, reservation-only digital workspace where clients could consult directly with master perfumers away from public view.',
+    location: 'Grasse, France'
   },
   {
     year: '2025',
@@ -35,7 +35,7 @@ const timelineEvents: TimelineEvent[] = [
   {
     year: '2026',
     title: 'The Global Archive',
-    description: 'Eternyx expands to select luxury boutiques in London, Tokyo, and New York, preserving our commitment to small-batch formulations and silent exclusivity.',
+    description: 'Eternyx expands to select exclusive private online collectors worldwide, preserving our commitment to small-batch formulations and silent exclusivity.',
     location: 'Worldwide'
   }
 ];

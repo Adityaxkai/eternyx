@@ -140,13 +140,14 @@ export default function BannersPage() {
       setUploadingDesktop(true);
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': file.type || 'image/jpeg',
+          'x-filename': file.name,
+        },
+        body: file,
       });
 
       if (res.ok) {
@@ -157,11 +158,12 @@ export default function BannersPage() {
           setFormImageUrl(data.url);
         }
       } else {
-        alert('Failed to upload image.');
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to upload image.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Upload error.');
+      alert(err.message || 'Upload error.');
     } finally {
       if (isMobileType) {
         setUploadingMobile(false);
@@ -303,7 +305,7 @@ export default function BannersPage() {
 
       {/* Sliding Form Drawer */}
       <div className={`drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)}>
-        <div className={`drawer-content ${isDrawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <div className={`drawer-content ${isDrawerOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()} data-lenis-prevent="true">
           <div className="drawer-header">
             <h2>{editingBanner ? 'Edit Hero Banner' : 'Add New Hero Banner'}</h2>
             <button className="close-btn" onClick={() => setIsDrawerOpen(false)}>
@@ -626,10 +628,11 @@ export default function BannersPage() {
         .drawer-content {
           position: fixed;
           top: 0;
-          right: -450px;
+          right: -480px;
           width: 100%;
-          max-width: 450px;
-          height: 100%;
+          max-width: 480px;
+          height: 100vh;
+          max-height: 100vh;
           background: #0d0d0d;
           border-left: 1px solid rgba(255, 255, 255, 0.05);
           box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
@@ -639,6 +642,23 @@ export default function BannersPage() {
           display: flex;
           flex-direction: column;
           overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+        }
+
+        .drawer-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .drawer-content::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+        }
+        .drawer-content::-webkit-scrollbar-thumb {
+          background: rgba(212, 175, 55, 0.3);
+          border-radius: 3px;
+        }
+        .drawer-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(212, 175, 55, 0.6);
         }
 
         .drawer-content.open {
@@ -649,9 +669,10 @@ export default function BannersPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 30px;
+          margin-bottom: 24px;
           padding-bottom: 15px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          flex-shrink: 0;
         }
 
         .drawer-header h2 {
@@ -680,7 +701,8 @@ export default function BannersPage() {
           display: flex;
           flex-direction: column;
           gap: 20px;
-          flex: 1;
+          padding-bottom: 40px;
+          flex-shrink: 0;
         }
 
         .form-group {

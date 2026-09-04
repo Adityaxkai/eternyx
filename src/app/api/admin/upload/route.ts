@@ -1,6 +1,8 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,66 +28,110 @@ const getDriveClient = () => {
 
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
+    const contentType = request.headers.get('content-type') || '';
+    const urlObj = new URL(request.url);
+    const queryFilename = urlObj.searchParams.get('filename') || request.headers.get('x-filename') || '';
 
-    if (!file) {
-      return Response.json({ error: 'No file provided' }, { status: 400 });
+    let buffer: Buffer | null = null;
+    let originalName = queryFilename || 'media.mp4';
+    let mimeType = contentType;
+
+    if (contentType.includes('multipart/form-data')) {
+      try {
+        const formData = await request.formData();
+        const file = formData.get('file') as File | null;
+        if (file) {
+          const bytes = await file.arrayBuffer();
+          buffer = Buffer.from(bytes);
+          originalName = file.name || originalName;
+          mimeType = file.type || mimeType;
+        }
+      } catch (formErr) {
+        console.warn('FormData parse failed (likely size limit), reading raw body buffer:', formErr);
+      }
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // If buffer wasn't populated from formData (e.g. direct binary upload or large file)
+    if (!buffer) {
+      const bytes = await request.arrayBuffer();
+      buffer = Buffer.from(bytes);
+    }
 
-    // Convert buffer to Readable stream for the drive upload
-    const bufferStream = new Readable();
-    bufferStream.push(buffer);
-    bufferStream.push(null);
+    if (!buffer || buffer.length === 0) {
+      return Response.json({ error: 'No file data received or file is empty' }, { status: 400 });
+    }
 
-    const ext = file.name.split('.').pop() || 'jpg';
+    const ext = originalName.split('.').pop() || (mimeType.includes('video') ? 'mp4' : 'jpg');
     const filename = `${uuidv4().slice(0, 8)}.${ext}`;
+    const isVideo = mimeType.startsWith('video/') || ['mp4', 'mov', 'webm', 'ogg', 'm4v', 'avi', 'mkv'].includes(ext.toLowerCase());
+    let url = '';
 
-    const drive = getDriveClient();
+    // 1. Attempt Google Drive Upload if credentials exist
+    if (CLIENT_ID && CLIENT_SECRET && REFRESH_TOKEN) {
+      try {
+        const bufferStream = new Readable();
+        bufferStream.push(buffer);
+        bufferStream.push(null);
 
-    // 1. Upload the file to Google Drive
-    const fileMetadata = {
-      name: filename,
-      parents: FOLDER_ID ? [FOLDER_ID] : [],
-    };
+        const drive = getDriveClient();
 
-    const media = {
-      mimeType: file.type || 'application/octet-stream',
-      body: bufferStream,
-    };
+        const fileMetadata = {
+          name: filename,
+          parents: FOLDER_ID ? [FOLDER_ID] : [],
+        };
 
-    const driveResponse = await drive.files.create({
-      requestBody: fileMetadata,
-      media: media,
-      fields: 'id',
-    });
+        const media = {
+          mimeType: mimeType || 'application/octet-stream',
+          body: bufferStream,
+        };
 
-    const fileId = driveResponse.data.id;
+        const driveResponse = await drive.files.create({
+          requestBody: fileMetadata,
+          media: media,
+          fields: 'id',
+        });
 
-    if (!fileId) {
-      throw new Error('Failed to retrieve file ID from Google Drive response');
+        const fileId = driveResponse.data.id;
+
+        if (fileId) {
+          await drive.permissions.create({
+            fileId: fileId,
+            requestBody: {
+              role: 'reader',
+              type: 'anyone',
+            },
+          });
+
+          url = isVideo
+            ? `https://drive.google.com/uc?export=download&id=${fileId}`
+            : `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+
+          console.log('✓ Successfully uploaded to Google Drive:', url);
+        }
+      } catch (driveError: any) {
+        console.warn('⚠️ Google Drive Upload Failed, falling back to local server storage:', driveError.message || driveError);
+      }
     }
 
-    // 2. Share the file publicly so anyone can view it on the website
-    await drive.permissions.create({
-      fileId: fileId,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
-    });
+    // 2. Fallback to saving locally in public/uploads/
+    if (!url) {
+      const uploadDir = path.join(process.cwd(), 'public/uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
 
-    // 3. Return the direct access URL using Google's public thumbnail/embed format
-    const url = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+      const filePath = path.join(uploadDir, filename);
+      fs.writeFileSync(filePath, buffer);
 
-    return Response.json({ url }, { status: 201 });
+      url = `/uploads/${filename}`;
+      console.log('✓ Saved locally on server:', url);
+    }
+
+    return Response.json({ url, success: true }, { status: 201 });
   } catch (error: any) {
-    console.error('Google Drive Upload Error:', error);
+    console.error('Upload Error:', error);
     return Response.json(
-      { error: error.message || 'Failed to upload to Google Drive' },
+      { error: error.message || 'Failed to upload' },
       { status: 500 }
     );
   }

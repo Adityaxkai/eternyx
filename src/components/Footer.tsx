@@ -18,6 +18,9 @@ interface FooterConfig {
   copyright?: string;
   columns?: FooterColumn[];
   bottomLinks?: FooterLink[];
+  instagramUrl?: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
 }
 
 const DEFAULT_FOOTER_CONFIG: FooterConfig = {
@@ -27,38 +30,30 @@ const DEFAULT_FOOTER_CONFIG: FooterConfig = {
     {
       title: 'Collections',
       links: [
-        { label: 'Silken Oud', url: '/shop?q=Silken+Oud' },
-        { label: 'Noir Absolu', url: '/shop?q=Noir+Absolu' },
-        { label: 'Lumière Rose', url: '/shop?q=Lumiere+Rose' },
-        { label: 'Vetiver Ghost', url: '/shop?q=Vetiver+Ghost' },
+        { label: 'CANDY', url: '/shop?q=CANDY' },
+        { label: 'AFTER MEET', url: '/shop?q=AFTER+MEET' },
+        { label: 'AZURA', url: '/shop?q=AZURA' },
+        { label: 'MEMORABLE', url: '/shop?q=MEMORABLE' },
         { label: 'Shop All Fragrances', url: '/shop' }
       ]
     },
     {
       title: 'Services',
       links: [
-        { label: 'Bespoke Scent Consultation', url: '#' },
-        { label: 'Private Perfumery Masterclass', url: '#' },
-        { label: 'Corporate Gifting', url: '#' },
-        { label: 'Custom Bottle Engraving', url: '#' }
+        { label: 'Bespoke Scent Consultation', url: '/bespoke' }
       ]
     },
     {
       title: 'Boutique Story',
       links: [
-        { label: 'The Heritage', url: '#' },
-        { label: 'Sourcing Grasse Essences', url: '#' },
-        { label: 'Olfactory Scent Journal', url: '#' },
-        { label: 'Sustainability & Ethos', url: '#' }
+        { label: 'The Heritage', url: '/story' },
+        { label: 'Olfactory Scent Journal', url: '/journal' }
       ]
     },
     {
       title: 'Support & Store',
       links: [
-        { label: 'Contact Boutique', url: '#' },
-        { label: 'Shipping & Complimentary Returns', url: '#' },
-        { label: 'Find a Boutique', url: '#' },
-        { label: 'Olfactory FAQ', url: '#' }
+        { label: 'Contact Boutique', url: '/contact' }
       ]
     }
   ],
@@ -78,14 +73,22 @@ export default function Footer() {
     fetch('/api/settings')
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.footerConfig) {
-          setConfig(data.footerConfig);
-        } else if (data && data.footerText) {
-          // If we only have plain footerText, merge it in
-          setConfig((prev) => ({
-            ...prev,
-            copyright: data.footerText
-          }));
+        if (data) {
+          const newConfig: FooterConfig = {
+            ...DEFAULT_FOOTER_CONFIG,
+            instagramUrl: data.instagramUrl || '',
+            facebookUrl: data.facebookUrl || '',
+            twitterUrl: data.twitterUrl || '',
+          };
+          if (data.footerConfig) {
+            newConfig.disclaimer = data.footerConfig.disclaimer ?? DEFAULT_FOOTER_CONFIG.disclaimer;
+            newConfig.copyright = data.footerConfig.copyright ?? DEFAULT_FOOTER_CONFIG.copyright;
+            newConfig.columns = data.footerConfig.columns ?? DEFAULT_FOOTER_CONFIG.columns;
+            newConfig.bottomLinks = data.footerConfig.bottomLinks ?? DEFAULT_FOOTER_CONFIG.bottomLinks;
+          } else if (data.footerText) {
+            newConfig.copyright = data.footerText;
+          }
+          setConfig(newConfig);
         }
       })
       .catch((err) => console.error('Failed to load footer settings:', err));
@@ -95,16 +98,25 @@ export default function Footer() {
     setOpenColumn(openColumn === idx ? null : idx);
   };
 
-  const columns = config.columns || DEFAULT_FOOTER_CONFIG.columns || [];
-  const bottomLinks = config.bottomLinks || DEFAULT_FOOTER_CONFIG.bottomLinks || [];
+  const columns = (config.columns && config.columns.length > 0) 
+    ? config.columns 
+    : (DEFAULT_FOOTER_CONFIG.columns || []);
+
+  const bottomLinks = (config.bottomLinks && config.bottomLinks.length > 0) 
+    ? config.bottomLinks 
+    : (DEFAULT_FOOTER_CONFIG.bottomLinks || []);
+
+  const disclaimer = config.disclaimer !== undefined && config.disclaimer !== '' 
+    ? config.disclaimer 
+    : DEFAULT_FOOTER_CONFIG.disclaimer;
 
   return (
     <footer className="apple-footer">
       <div className="footer-inner">
         {/* Top Disclaimer / Fine Print */}
-        {config.disclaimer && (
+        {disclaimer && (
           <section className="footer-disclaimer">
-            <p>{config.disclaimer}</p>
+            <p>{disclaimer}</p>
           </section>
         )}
 
@@ -138,6 +150,50 @@ export default function Footer() {
             </div>
           ))}
         </nav>
+
+        {/* Social Profile links with original colors */}
+        {(config.instagramUrl || config.facebookUrl || config.twitterUrl) && (
+          <section className="footer-socials">
+            <span className="socials-label">Follow Us</span>
+            <div className="socials-icons-list">
+              {config.instagramUrl && (
+                <a href={config.instagramUrl} target="_blank" rel="noopener noreferrer" className="social-icon instagram" title="Instagram">
+                  <svg viewBox="0 0 24 24" width="18" height="18" className="social-icon-svg">
+                    <defs>
+                      <radialGradient id="ig-grad-footer" cx="30%" cy="107%" r="130%">
+                        <stop offset="0%" stopColor="#fdf497" />
+                        <stop offset="5%" stopColor="#fdf497" />
+                        <stop offset="45%" stopColor="#fd5949" />
+                        <stop offset="60%" stopColor="#d6249f" />
+                        <stop offset="90%" stopColor="#285AEB" />
+                      </radialGradient>
+                    </defs>
+                    <rect x="2" y="2" width="20" height="20" rx="5" fill="url(#ig-grad-footer)" />
+                    <rect x="5" y="5" width="14" height="14" rx="3.5" fill="none" stroke="#fff" strokeWidth="1.5" />
+                    <circle cx="12" cy="12" r="3.5" fill="none" stroke="#fff" strokeWidth="1.5" />
+                    <circle cx="16.5" cy="7.5" r="1" fill="#fff" />
+                  </svg>
+                </a>
+              )}
+              {config.facebookUrl && (
+                <a href={config.facebookUrl} target="_blank" rel="noopener noreferrer" className="social-icon facebook" title="Facebook">
+                  <svg viewBox="0 0 24 24" width="18" height="18" className="social-icon-svg">
+                    <rect x="2" y="2" width="20" height="20" rx="5" fill="#1877F2" />
+                    <path d="M16 12h-3v8h-3v-8H8v-3h2V7.2C10 5.25 11.25 4 13.5 4c1 0 1.85.07 2.1.1v2.44h-1.44c-1 0-1.16.47-1.16 1.14V9h2.5l-.5 3z" fill="#fff" />
+                  </svg>
+                </a>
+              )}
+              {config.twitterUrl && (
+                <a href={config.twitterUrl} target="_blank" rel="noopener noreferrer" className="social-icon twitter" title="Twitter / X">
+                  <svg viewBox="0 0 24 24" width="18" height="18" className="social-icon-svg">
+                    <rect x="2" y="2" width="20" height="20" rx="5" fill="#1DA1F2" />
+                    <path d="M19 6.8c-.5.2-1.1.4-1.7.5.6-.4 1-1 1.2-1.7-.5.3-1.1.5-1.7.6a2.7 2.7 0 00-4.6 2.5A7.6 7.6 0 016.7 5.8a2.7 2.7 0 00.8 3.6c-.5 0-.9-.1-1.3-.3v.1a2.7 2.7 0 002.2 2.6c-.4.1-.8.1-1.2.1-.3 0-.6 0-.8-.1a2.7 2.7 0 002.5 1.9 5.4 5.4 0 01-4 1.1c1.3.8 2.8 1.3 4.4 1.3a7.7 7.7 0 007.7-7.7V9.6c.6-.5 1.1-1 1.5-1.6z" fill="#fff" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Base Copyright & Policies bar */}
         <section className="footer-base">
@@ -246,6 +302,45 @@ export default function Footer() {
         }
 
         /* Base Bar */
+        .footer-socials {
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          padding: 16px 0;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .socials-label {
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.72rem;
+          font-weight: 500;
+          letter-spacing: 0.02em;
+        }
+
+        .socials-icons-list {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .social-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.25s ease, filter 0.25s ease;
+          border-radius: 5px;
+          overflow: hidden;
+        }
+
+        .social-icon:hover {
+          transform: translateY(-2px) scale(1.08);
+          filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.2));
+        }
+
+        .social-icon-svg {
+          display: block;
+        }
+
         .footer-base {
           border-top: 1px solid rgba(255, 255, 255, 0.06);
           padding-top: 18px;
@@ -422,6 +517,12 @@ export default function Footer() {
 
           .policy-links {
             gap: 6px 12px;
+          }
+
+          .footer-socials {
+            padding: 14px 0;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
           }
         }
       `}</style>

@@ -287,6 +287,27 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           padding: 32px;
           flex: 1;
           overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+        }
+
+        .admin-content::-webkit-scrollbar,
+        .sidebar-nav::-webkit-scrollbar {
+          width: 6px;
+        }
+        .admin-content::-webkit-scrollbar-track,
+        .sidebar-nav::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+        }
+        .admin-content::-webkit-scrollbar-thumb,
+        .sidebar-nav::-webkit-scrollbar-thumb {
+          background: rgba(212, 175, 55, 0.25);
+          border-radius: 3px;
+        }
+        .admin-content::-webkit-scrollbar-thumb:hover,
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+          background: rgba(212, 175, 55, 0.5);
         }
 
         /* Admin Page Common Styles */

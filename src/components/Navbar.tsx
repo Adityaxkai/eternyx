@@ -49,6 +49,10 @@ export default function Navbar() {
     };
   }, [isMenuOpen, isSearchOpen]);
 
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   return (
     <>
       <header className={`header-wrapper ${isScrolled ? 'scrolled' : ''}`}>

@@ -81,15 +81,17 @@ export const productService = {
     const fields: string[] = [];
     const values: any[] = [];
     
-    for (const [key, value] of Object.entries(data)) {
-      if (key !== 'id' && key !== 'created_at') {
+    for (const [key, rawValue] of Object.entries(data)) {
+      if (key !== 'id' && key !== 'created_at' && rawValue !== undefined) {
         fields.push(`${key} = ?`);
         if (key === 'visible') {
-          values.push(value ? 1 : 0);
+          values.push(rawValue ? 1 : 0);
         } else if (['top_notes', 'heart_notes', 'base_notes', 'sizes', 'additional_images'].includes(key)) {
-          values.push(JSON.stringify(value));
+          values.push(Array.isArray(rawValue) ? JSON.stringify(rawValue) : (typeof rawValue === 'string' ? rawValue : '[]'));
+        } else if (rawValue === '' && ['badge', 'description', 'volume'].includes(key)) {
+          values.push(null);
         } else {
-          values.push(value);
+          values.push(rawValue ?? null);
         }
       }
     }
