@@ -6,7 +6,7 @@
     "price": 599,
     "badge": "BESTSELLER",
     "description": "Some women are remembered. Others are craved. CANDY by ETERNYX was created for her — the woman who is sweet yet powerful, delicate yet magnetic, impossible to forget. It opens with a luscious burst of juicy pear, pink pepper, and soft orange blossom — bright, playful, and instantly captivating. A first impression as irresistible as a smile. At its heart, rich coffee melts into jasmine and bitter almond — warm, sensual, and beautifully addictive. This is where CANDY reveals its depth — feminine, modern, and endlessly alluring. Then comes the seduction. A creamy base of vanilla, patchouli, cedarwood, and cashmere wood wraps the skin in luxurious warmth — soft, lingering, and unforgettable. A trail that leaves them wanting more. CANDY isn't just a fragrance. It's an experience — sweet, sophisticated, and utterly addictive. For the woman who owns her softness and turns it into power.",
-    "image_url": "/images/product-candy.png",
+    "image_url": "",
     "visible": true,
     "position": 0,
     "scent_notes": {
@@ -212,7 +212,8 @@
       "cashmere wood",
       "feminine scent",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "2",
@@ -221,7 +222,7 @@
     "price": 599,
     "badge": "NEW",
     "description": "Some men are remembered for what they say. The rare few are remembered for how they made you feel. AFTER MEET by ETERNYX was created for the second kind — the man who leaves a mark that lingers. It opens with a bright, confident rush of lemon and delicate orange blossom — crisp, clean, and instantly captivating. This is your first impression, sharp and effortless. As it unfolds, an aromatic heart of lavender, rosemary, and warm nutmeg takes hold — refined, bold, and undeniably masculine. It's the depth beneath the surface, the character people can't quite forget. Then comes the signature. A warm, distinctive base of tonka bean, rich teakwood, and juicy litchi wraps the skin in smooth, magnetic warmth — the scent trail that stays in the room long after you've gone. AFTER MEET isn't just a fragrance. It's the impression you leave behind. Bold, memorable, and unmistakably you. For the man who understands that presence is the ultimate power.",
-    "image_url": "/images/product-after-meet.png",
+    "image_url": "",
     "visible": true,
     "position": 1,
     "scent_notes": {
@@ -426,7 +427,8 @@
       "teakwood",
       "tonka bean",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "3",
@@ -435,7 +437,7 @@
     "price": 599,
     "badge": null,
     "description": "There's a certain calm in confidence — the kind that feels as fresh and boundless as the open sea. AZURA by ETERNYX was created to capture it. It opens with a crisp, vibrant burst of apple, bergamot, lemon, and a touch of cinnamon — juicy, bright, and instantly energizing. Like a deep breath of ocean air, it awakens the senses. At its heart, cool aquatic notes flow into orange blossom and juicy plum — fresh, smooth, and effortlessly modern. This is the soul of AZURA — clean, elegant, and endlessly refreshing. Then comes the depth. A sensual base of musk, ambergris, driftwood, and patchouli grounds the fragrance in warm, magnetic sophistication — leaving a trail that's fresh yet unforgettable. AZURA isn't just a fragrance. It's the feeling of freedom, confidence, and modern elegance — bottled for the man who owns every day. Fresh. Vibrant. Timeless.",
-    "image_url": "/images/product-azura.png",
+    "image_url": "",
     "visible": true,
     "position": 2,
     "scent_notes": {
@@ -643,7 +645,8 @@
       "driftwood",
       "summer scent",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "4",
@@ -652,7 +655,7 @@
     "price": 599,
     "badge": "SIGNATURE",
     "description": "Some scents fade. This one becomes a memory. MEMORABLE by ETERNYX blends airy saffron, warm amber, and refined woods into a sophisticated unisex signature. For those who turn every moment into something unforgettable. The most powerful memories aren't seen — they're felt. A scent in the air. A presence that lingers. MEMORABLE by ETERNYX was created to capture exactly that. It opens with an airy elegance of saffron and jasmine — soft, luminous, and instantly captivating. A first impression that feels both delicate and powerful. At its heart, amberwood and a smooth ambergris accord unfold — warm, refined, and beautifully balanced. This is where MEMORABLE reveals its soul — sophisticated, sensual, and endlessly alluring. Then comes the depth. A grounding base of fir resin and cedarwood settles into the skin — rich, woody, and magnetic. A trail that lingers long after you've gone, turning moments into memories. MEMORABLE isn't just a fragrance. It's the feeling you leave behind — elegant, timeless, and impossible to forget. Designed for everyone who dares to be unforgettable.",
-    "image_url": "/images/product-memorable.png",
+    "image_url": "",
     "visible": true,
     "position": 3,
     "scent_notes": {
@@ -855,7 +858,8 @@
       "ambergris",
       "sophisticated scent",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "5",
@@ -864,7 +868,7 @@
     "price": 599,
     "badge": "LUXURY",
     "description": "Confidence is the most beautiful thing a woman can wear. CHERRY BLOW by ETERNYX was created to celebrate it — bold, feminine, and impossibly luxurious. It opens with a rich, inviting blend of almond, coffee, bergamot, and lemon — warm yet bright, indulgent yet fresh. A first impression that's as captivating as it is confident. At its heart, a lavish bouquet of jasmine sambac, tuberose, and orange blossom blooms — sensual, elegant, and undeniably feminine. This is the soul of CHERRY BLOW — floral, refined, and endlessly alluring. Then comes the seduction. A creamy base of tonka bean, cocoa, vanilla, and sandalwood wraps the skin in luxurious warmth — smooth, addictive, and unforgettable. A trail that leaves a lasting impression wherever you go. CHERRY BLOW isn't just a fragrance. It's a statement of elegance and power — the scent of a woman who knows exactly who she is. Bold. Beautiful. Unforgettable.",
-    "image_url": "/images/product-cherry-blow.png",
+    "image_url": "",
     "visible": true,
     "position": 4,
     "scent_notes": {
@@ -1072,7 +1076,8 @@
       "cocoa",
       "sandalwood",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "6",
@@ -1081,7 +1086,7 @@
     "price": 599,
     "badge": null,
     "description": "Charisma isn't taught. It's felt the moment you walk in. SOVARE by ETERNYX was created for the man who carries it naturally — bold, energetic, and effortlessly commanding. It opens with a vibrant rush of blood mandarin, grapefruit, and cool mint — juicy, electric, and instantly alive. This is energy in its purest form, the spark that turns heads. At its heart, cinnamon, rose, and warm spices unfold — rich, refined, and undeniably masculine. It's the perfect balance of fire and elegance, the character that keeps people intrigued. Then comes the power. A bold base of leather, amber, and smooth woods settles into the skin — confident, sensual, and magnetic. A trail that speaks of strength and sophistication. SOVARE isn't just a fragrance. It's charisma bottled — the scent of a man who owns every moment. Vibrant. Powerful. Unforgettable.",
-    "image_url": "/images/product-sovare.png",
+    "image_url": "",
     "visible": true,
     "position": 5,
     "scent_notes": {
@@ -1287,7 +1292,8 @@
       "cinnamon",
       "amber",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "7",
@@ -1296,7 +1302,7 @@
     "price": 599,
     "badge": null,
     "description": "There's a certain freedom in knowing exactly who you are. No noise. No pretending. Just quiet, effortless confidence. DREAM DROP LET by ETERNYX was created for that man. It opens with a sparkling rush of bergamot and warm pepper — fresh, vibrant, and instantly invigorating. It's the feeling of a new morning, full of possibility. At its heart, lavender, geranium, and patchouli weave together — aromatic, smooth, and beautifully balanced. This is where character lives — masculine, versatile, and impossible to ignore. Then the foundation settles in. Ambroxan, cedarwood, and labdanum create a rich, woody warmth that clings to the skin — sophisticated, magnetic, and timeless. A scent that feels like second nature. DREAM DROP LET isn't just a fragrance. It's the essence of freedom and quiet confidence — a signature for the man who moves through life with purpose. Fresh. Masculine. Unforgettable.",
-    "image_url": "/images/product-dream-drop-let.png",
+    "image_url": "",
     "visible": true,
     "position": 6,
     "scent_notes": {
@@ -1502,7 +1508,8 @@
       "cedarwood",
       "ambroxan",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "8",
@@ -1511,7 +1518,7 @@
     "price": 599,
     "badge": "UNISEX",
     "description": "Some people speak. The powerful ones think. DARK THINKER by ETERNYX was created for the individual of depth — the quiet intellect, the observer, the one whose presence says more than words ever could. It opens with a fresh breath of bergamot and cool green notes — crisp, natural, and grounding. Like the first step into a forest at dawn, it awakens the senses and sets the tone. At its heart lies a rich blend of cedarwood, patchouli, and warm spices — earthy, complex, and beautifully balanced. This is where mystery lives — layered, thoughtful, and impossible to fully define. Then comes the depth. A powerful base of amber, vetiver, and musk grounds the fragrance in raw, sensual warmth — bold, memorable, and magnetic. It lingers on the skin like a thought you can't shake. DARK THINKER isn't just a fragrance. It's the scent of depth and quiet power — designed for everyone who dares to be different. Because true confidence has no gender.",
-    "image_url": "/images/product-dark-thinker.png",
+    "image_url": "",
     "visible": true,
     "position": 7,
     "scent_notes": {
@@ -1716,7 +1723,8 @@
       "cedarwood",
       "musk perfume",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "9",
@@ -1725,7 +1733,7 @@
     "price": 599,
     "badge": "HOT",
     "description": "There's power in mystery. In the man who says little but leaves everyone wondering. DARK REVENGE by ETERNYX was made for him — the one who commands attention without ever asking for it. It opens with a sharp, spicy burst of cardamom — intense, confident, and instantly commanding. This is the entrance. The moment heads turn. At its core, a rich toffee accord melts into the composition — sweet, smooth, and dangerously addictive. It's warmth wrapped in seduction, the kind of scent that lingers in someone's memory long after you've left. Then comes the depth. A powerful base of amberwood grounds the fragrance in raw, masculine warmth — sensual, bold, and impossible to ignore. DARK REVENGE isn't just a fragrance. It's your after-dark signature. The scent of confidence, control, and quiet dominance. For the man who doesn't chase attention — he commands it.",
-    "image_url": "/images/product-dark-revenge.png",
+    "image_url": "",
     "visible": true,
     "position": 8,
     "scent_notes": {
@@ -1925,7 +1933,8 @@
       "amberwood",
       "toffee perfume",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   },
   {
     "id": "10",
@@ -1934,7 +1943,7 @@
     "price": 599,
     "badge": "SPORTY",
     "description": "Some men chase the moment. Others become it. MY STORA by ETERNYX is the scent of motion, confidence, and effortless energy — crafted for the man who never slows down. One spray, and the world notices. There's a certain kind of man who walks into a room and changes its rhythm. He doesn't announce himself — he simply arrives. MY STORA was created for him. It opens like the first breath of morning — crisp apple, sparkling grapefruit, and sun-warmed mandarin awakening the senses. This is energy you can feel, a freshness that mirrors the spirit of someone always ready for the next adventure. As the hours unfold, a refined heart of violet leaf, soft lavender, and spiced cardamom emerges — aromatic, modern, and quietly powerful. It's the moment confidence settles in and becomes second nature. Then comes the lasting impression. A smooth foundation of cedarwood, sensual musk, and warm amber lingers on the skin — grounded, magnetic, unforgettable. MY STORA isn't just a fragrance. It's the feeling of being fully alive — sporty yet sophisticated, bold yet effortlessly elegant. For the man who lives every day like it matters.",
-    "image_url": "/images/product-my-stora.png",
+    "image_url": "",
     "visible": true,
     "position": 9,
     "scent_notes": {
@@ -2140,6 +2149,7 @@
       "cedarwood",
       "sillage sillage",
       "100ml"
-    ]
+    ],
+    "additional_images": []
   }
 ]

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Product } from '@/lib/types';
 import Image from 'next/image';
+import { compressImage } from '@/lib/compressImage';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -127,11 +128,12 @@ export default function ProductsPage() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
     setUploading(true);
     try {
+      const file = await compressImage(rawFile);
       const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
         method: 'POST',
         headers: {
@@ -163,7 +165,8 @@ export default function ProductsPage() {
     setUploading(true);
     try {
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        const rawFile = files[i];
+        const file = await compressImage(rawFile);
         const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
           method: 'POST',
           headers: {

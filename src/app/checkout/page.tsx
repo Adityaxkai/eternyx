@@ -788,7 +788,13 @@ function CheckoutContent() {
               {cartItems.map((item) => (
                 <div key={item.id} className="summary-item">
                   <div className="item-thumbnail">
-                    <img src={item.image} alt={item.name} />
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} />
+                    ) : (
+                      <div className="product-card-placeholder" style={{ minHeight: '100%', padding: '6px' }}>
+                        <span className="placeholder-brand" style={{ fontSize: '0.65rem' }}>ETX</span>
+                      </div>
+                    )}
                   </div>
                   <div className="item-info">
                     <div className="item-header-row">

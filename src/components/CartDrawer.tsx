@@ -157,7 +157,13 @@ export default function CartDrawer() {
               {cartItems.map((item) => (
                 <div key={item.id} className="cart-item">
                   <div className="item-image">
-                    <img src={item.image} alt={item.name} />
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} />
+                    ) : (
+                      <div className="product-card-placeholder" style={{ minHeight: '100%', padding: '6px' }}>
+                        <span className="placeholder-brand" style={{ fontSize: '0.65rem' }}>ETX</span>
+                      </div>
+                    )}
                   </div>
                   <div className="item-details">
                     <div className="item-header-row">

@@ -1,8 +1,12 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import productsData from '@/data/products.json';
+import { productService } from '@/services/productService';
 import { Product } from '@/lib/types';
 import ProductDetailClient from '@/components/ProductDetailClient';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface PageProps {
   params: Promise<{
@@ -15,6 +19,17 @@ function getSlug(name: string): string {
 }
 
 export async function generateStaticParams() {
+  try {
+    const dbProducts = await productService.getAll();
+    if (dbProducts && dbProducts.length > 0) {
+      return dbProducts.map((p) => ({
+        slug: getSlug(p.name),
+      }));
+    }
+  } catch (e) {
+    console.warn('generateStaticParams db fallback:', e);
+  }
+
   return (productsData as any[]).map((p) => ({
     slug: getSlug(p.name),
   }));
@@ -22,9 +37,22 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = (productsData as any[]).find(
-    (p) => getSlug(p.name) === slug.toLowerCase().trim()
+  let dbProduct: Product | undefined;
+  
+  try {
+    const dbProducts = await productService.getAll();
+    dbProduct = dbProducts.find(
+      (p) => getSlug(p.name) === slug.toLowerCase().trim() || p.id === slug
+    );
+  } catch (e) {
+    console.warn('generateMetadata db fallback:', e);
+  }
+
+  const richData = (productsData as any[]).find(
+    (p) => getSlug(p.name) === slug.toLowerCase().trim() || p.id === slug
   );
+
+  const product = dbProduct || richData;
 
   if (!product) {
     return {
@@ -33,9 +61,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const title = product.seo_title || `${product.name} Eau de Parfum | ETERNYX Luxury Fragrance`;
-  const description = product.seo_description || product.description;
-  const keywords = product.shopify_keywords || product.product_tags || [];
+  const title = richData?.seo_title || `${product.name} Eau de Parfum | ETERNYX Luxury Fragrance`;
+  const description = richData?.seo_description || product.description;
+  const keywords = richData?.shopify_keywords || richData?.product_tags || [];
   const imageUrl = product.image_url || '/images/hero.png';
 
   return {
@@ -52,7 +80,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           url: imageUrl,
           width: 800,
           height: 1000,
-          alt: (product.image_alt && product.image_alt[0]) || `${product.name} by ETERNYX`,
+          alt: (richData?.image_alt && richData.image_alt[0]) || `${product.name} by ETERNYX`,
         },
       ],
       siteName: 'ETERNYX Luxury Fragrances',
@@ -71,46 +99,67 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const productData = (productsData as any[]).find(
-    (p) => getSlug(p.name) === slug.toLowerCase().trim()
+
+  let dbProduct: Product | undefined;
+  try {
+    const dbProducts = await productService.getAll();
+    dbProduct = dbProducts.find(
+      (p) => getSlug(p.name) === slug.toLowerCase().trim() || p.id === slug
+    );
+  } catch (e) {
+    console.warn('ProductPage db fetch fallback:', e);
+  }
+
+  const richProductData = (productsData as any[]).find(
+    (p) => getSlug(p.name) === slug.toLowerCase().trim() || p.id === slug
   );
 
-  if (!productData) {
+  if (!dbProduct && !richProductData) {
     notFound();
   }
 
   const product: Product = {
-    id: String(productData.id || productData.position || '1'),
-    name: productData.name,
-    category: productData.category || 'Eau de Parfum',
-    price: Number(productData.price) || 599,
-    description: productData.description || '',
-    volume: '100ml',
-    image_url: productData.image_url || '/images/hero.png',
-    position: productData.position || 0,
-    visible: true,
-    badge: productData.badge || null,
-    top_notes: productData.scent_notes?.top || productData.top_notes || [],
-    heart_notes: productData.scent_notes?.mid || productData.heart_notes || [],
-    base_notes: productData.scent_notes?.base || productData.base_notes || [],
-    sizes: productData.sizes || [{ size: '100ml', stock: 50 }],
-    additional_images: productData.additional_images || [],
-    hook: productData.hook,
-    specs: productData.specs,
-    key_features: productData.key_features,
-    fragrance_journey: productData.fragrance_journey,
-    perfect_for: productData.perfect_for,
-    faqs: productData.faqs,
-    cross_sells: productData.cross_sells,
-    upsell: productData.upsell,
-    amazon_bullets: productData.amazon_bullets,
-    emotional_points: productData.emotional_points,
-    objection_handling: productData.objection_handling,
-    seo_title: productData.seo_title,
-    seo_description: productData.seo_description,
-    shopify_keywords: productData.shopify_keywords,
-    image_alt: productData.image_alt,
-    product_tags: productData.product_tags,
+    id: dbProduct ? dbProduct.id : String(richProductData?.id || richProductData?.position || '1'),
+    name: dbProduct ? dbProduct.name : richProductData?.name,
+    category: dbProduct?.category || richProductData?.category || 'Eau de Parfum',
+    price: dbProduct ? Number(dbProduct.price) : (Number(richProductData?.price) || 599),
+    description: dbProduct?.description || richProductData?.description || '',
+    volume: dbProduct?.volume || '100ml',
+    image_url: dbProduct?.image_url || richProductData?.image_url || '',
+    position: dbProduct?.position ?? (richProductData?.position || 0),
+    visible: dbProduct?.visible ?? true,
+    badge: dbProduct?.badge || richProductData?.badge || null,
+    top_notes: (dbProduct?.top_notes && dbProduct.top_notes.length > 0)
+      ? dbProduct.top_notes
+      : (richProductData?.scent_notes?.top || richProductData?.top_notes || []),
+    heart_notes: (dbProduct?.heart_notes && dbProduct.heart_notes.length > 0)
+      ? dbProduct.heart_notes
+      : (richProductData?.scent_notes?.mid || richProductData?.heart_notes || []),
+    base_notes: (dbProduct?.base_notes && dbProduct.base_notes.length > 0)
+      ? dbProduct.base_notes
+      : (richProductData?.scent_notes?.base || richProductData?.base_notes || []),
+    sizes: (dbProduct?.sizes && dbProduct.sizes.length > 0)
+      ? dbProduct.sizes
+      : (richProductData?.sizes || [{ size: '100ml', stock: 50 }]),
+    additional_images: (dbProduct?.additional_images && dbProduct.additional_images.length > 0)
+      ? dbProduct.additional_images
+      : (richProductData?.additional_images || []),
+    hook: richProductData?.hook,
+    specs: richProductData?.specs,
+    key_features: richProductData?.key_features,
+    fragrance_journey: richProductData?.fragrance_journey,
+    perfect_for: richProductData?.perfect_for,
+    faqs: richProductData?.faqs,
+    cross_sells: richProductData?.cross_sells,
+    upsell: richProductData?.upsell,
+    amazon_bullets: richProductData?.amazon_bullets,
+    emotional_points: richProductData?.emotional_points,
+    objection_handling: richProductData?.objection_handling,
+    seo_title: richProductData?.seo_title,
+    seo_description: richProductData?.seo_description,
+    shopify_keywords: richProductData?.shopify_keywords,
+    image_alt: richProductData?.image_alt,
+    product_tags: richProductData?.product_tags,
   };
 
   // Schema.org Product Rich Snippet
@@ -210,7 +259,7 @@ export default async function ProductPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <ProductDetailClient product={product} richData={productData} />
+      <ProductDetailClient product={product} richData={richProductData} />
     </>
   );
 }

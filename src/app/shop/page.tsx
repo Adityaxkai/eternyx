@@ -28,7 +28,7 @@ function ShopContent() {
             name: p.name,
             category: p.category,
             price: typeof p.price === 'number' ? `₹${p.price}` : p.price,
-            image: p.image_url || '/images/hero.png',
+            image: p.image_url || '',
             badge: p.badge || null,
             additional_images: p.additional_images || [],
           }));
@@ -129,13 +129,20 @@ function ShopContent() {
                 >
                   {product.badge && <span className="product-badge">{product.badge}</span>}
                   <div className="product-card-img">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      width={400}
-                      height={460}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        width={400}
+                        height={460}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <div className="product-card-placeholder">
+                        <span className="placeholder-brand">ETERNYX</span>
+                        <span className="placeholder-name">{product.name}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="product-card-info">
                     <p className="product-card-category">{product.category}</p>

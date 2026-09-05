@@ -184,7 +184,8 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
 
   const allImages = useMemo(() => {
     if (!product) return [];
-    const images = [product.image];
+    const images: string[] = [];
+    if (product.image) images.push(product.image);
     if (product.additional_images && Array.isArray(product.additional_images)) {
       product.additional_images.forEach(img => {
         if (img && !images.includes(img)) {
@@ -337,17 +338,24 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
         <div className="pm-image-col" ref={imageColRef}>
           <div className="pm-image-wrap">
             {product.badge && <span className="product-badge">{product.badge}</span>}
-            <Image
-              src={activeImage || product.image}
-              alt={
-                (richProduct?.image_alt && richProduct.image_alt[allImages.indexOf(activeImage || product.image)]) ||
-                `${product.name} Eau de Parfum by ETERNYX`
-              }
-              width={500}
-              height={600}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s ease' }}
-              key={activeImage}
-            />
+            {(activeImage || product.image) ? (
+              <Image
+                src={activeImage || product.image}
+                alt={
+                  (richProduct?.image_alt && richProduct.image_alt[allImages.indexOf(activeImage || product.image)]) ||
+                  `${product.name} Eau de Parfum by ETERNYX`
+                }
+                width={500}
+                height={600}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s ease' }}
+                key={activeImage}
+              />
+            ) : (
+              <div className="pm-no-image-placeholder">
+                <span className="placeholder-brand">ETERNYX</span>
+                <span className="placeholder-name">{product.name}</span>
+              </div>
+            )}
           </div>
           
           {/* Thumbnails Strip */}
@@ -410,8 +418,6 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
           {richProduct && richProduct.hook && (
             <p className="pm-hook">&ldquo;{richProduct.hook}&rdquo;</p>
           )}
-
-          <p className="pm-description">{description}</p>
 
           {/* Scent Pyramid (Mobile Only) */}
           <div className="pm-pyramid pm-pyramid-mobile">
@@ -607,6 +613,14 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                   </svg>
                 </a>
               </div>
+            </div>
+          )}
+
+          {/* Fragrance Story / Full Description */}
+          {description && (
+            <div className="pm-story-section" style={{ marginTop: '36px', marginBottom: '24px' }}>
+              <p className="pm-section-label">The Fragrance Story</p>
+              <p className="pm-description" style={{ marginBottom: 0 }}>{description}</p>
             </div>
           )}
 

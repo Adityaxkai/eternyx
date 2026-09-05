@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import Cursor from "@/components/Cursor";
 import SmoothScroll from "@/components/SmoothScroll";
 import { CartProvider } from "@/context/CartContext";
 import CartDrawer from "@/components/CartDrawer";
@@ -31,7 +30,6 @@ export default function RootLayout({
             <CartDrawer />
             <FloatingCart />
             <SmoothScroll />
-            <Cursor />
             {children}
             <StorefrontFooterWrapper />
           </CartProvider>

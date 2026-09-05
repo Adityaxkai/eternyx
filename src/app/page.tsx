@@ -4,12 +4,11 @@ import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
-import { Draggable } from 'gsap/dist/Draggable';
 import ProductModal, { Product } from '@/components/ProductModal';
 import { useCart } from '@/context/CartContext';
 
 if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, Draggable);
+  gsap.registerPlugin(ScrollTrigger);
 }
 
 function TextReveal({ text, className = '' }: { text: string; className?: string }) {
@@ -206,6 +205,7 @@ export default function Home() {
   const alchemyHeaderRef = useRef<HTMLDivElement>(null);
   
   const heroContentRef = useRef<HTMLDivElement>(null);
+  const isInteractingTrackRef = useRef(false);
 
   const LOCAL_BANNERS = [
     { image_url: "/images/wide-lineup.png", mobile_image_url: "/images/wide-lineup.png" },
@@ -214,11 +214,11 @@ export default function Home() {
   ];
 
   const LOCAL_PRODUCTS = [
-    { name: "CANDY", category: "Eau de Parfum", price: "₹599", image: "/images/product-candy.png", badge: "BESTSELLER" },
-    { name: "AFTER MEET", category: "Eau de Parfum", price: "₹599", image: "/images/product-after-meet.png", badge: "NEW" },
-    { name: "AZURA", category: "Eau de Parfum", price: "₹599", image: "/images/product-azura.png", badge: null },
-    { name: "MEMORABLE", category: "Eau de Parfum", price: "₹599", image: "/images/product-memorable.png", badge: "SIGNATURE" },
-    { name: "CHERRY BLOW", category: "Eau de Parfum", price: "₹599", image: "/images/product-cherry-blow.png", badge: "LUXURY" },
+    { name: "CANDY", category: "Eau de Parfum", price: "₹599", image: "", badge: "BESTSELLER" },
+    { name: "AFTER MEET", category: "Eau de Parfum", price: "₹599", image: "", badge: "NEW" },
+    { name: "AZURA", category: "Eau de Parfum", price: "₹599", image: "", badge: null },
+    { name: "MEMORABLE", category: "Eau de Parfum", price: "₹599", image: "", badge: "SIGNATURE" },
+    { name: "CHERRY BLOW", category: "Eau de Parfum", price: "₹599", image: "", badge: "LUXURY" },
   ];
 
   const [banners, setBanners] = useState<{ image_url: string; mobile_image_url: string }[]>(LOCAL_BANNERS);
@@ -256,7 +256,7 @@ export default function Home() {
             name: p.name,
             category: p.category,
             price: typeof p.price === 'number' ? `₹${p.price}` : p.price,
-            image: p.image_url || '/images/hero.png',
+            image: p.image_url || '',
             badge: p.badge || null
           }));
           setAlchemyProducts(mapped);
@@ -453,110 +453,325 @@ export default function Home() {
         }
       );
 
-      // Product Slider (Horizontal Drag + Wheel/Trackpad Scroll) - Desktop Only
-      const isDesktop = window.innerWidth > 768;
-      const track = scrollTrackRef.current;
-      let onWheelHandler: ((e: WheelEvent) => void) | null = null;
-      
-      if (track && isDesktop) {
-        const trackWidth = track.scrollWidth;
-        const viewportWidth = window.innerWidth;
-        const minX = -(trackWidth - viewportWidth + 120);
-        let currentX = 0;
-
-        Draggable.create(track, {
-          type: "x",
-          bounds: { minX, maxX: 0 },
-          inertia: true,
-          edgeResistance: 0.85,
-          cursor: "grab",
-          activeCursor: "grabbing",
-          onDrag: function() { currentX = this.x; },
-          onDragEnd: function() { currentX = this.x; }
-        });
-
-        const onWheel = (e: WheelEvent) => {
-          const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-
-          if (isHorizontal) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            currentX = Math.max(minX, Math.min(0, currentX - e.deltaX * 1.2));
-            gsap.to(track, {
-              x: currentX,
-              duration: 0.4,
-              ease: "power2.out",
-              overwrite: "auto"
-            });
-          }
-        };
-
-        onWheelHandler = onWheel;
-        track.addEventListener('wheel', onWheel, { passive: false });
-      }
-
-      // Reels Track: Draggable + wheel - Desktop Only
-      const reelsTrack = document.getElementById('reels-track');
-      let onReelsWheelHandler: ((e: WheelEvent) => void) | null = null;
-      
-      if (reelsTrack && isDesktop) {
-        const reelsWidth = reelsTrack.scrollWidth;
-        const vw = window.innerWidth;
-        const reelsMinX = -(reelsWidth - vw + 120);
-        let reelsX = 0;
-
-        Draggable.create(reelsTrack, {
-          type: 'x',
-          bounds: { minX: reelsMinX, maxX: 0 },
-          inertia: true,
-          edgeResistance: 0.85,
-          cursor: 'grab',
-          activeCursor: 'grabbing',
-          onDrag: function() { reelsX = this.x; },
-          onDragEnd: function() { reelsX = this.x; }
-        });
-
-        const onReelsWheel = (e: WheelEvent) => {
-          const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-          if (isHorizontal) {
-            e.preventDefault();
-            e.stopPropagation();
-            reelsX = Math.max(reelsMinX, Math.min(0, reelsX - e.deltaX * 1.2));
-            gsap.to(reelsTrack, { x: reelsX, duration: 0.4, ease: 'power2.out', overwrite: 'auto' });
-          }
-        };
-
-        onReelsWheelHandler = onReelsWheel;
-        reelsTrack.addEventListener('wheel', onReelsWheel, { passive: false });
-      }
-
-      (self as any).cleanups = {
-        track: isDesktop ? track : null,
-        onWheelHandler: isDesktop ? onWheelHandler : null,
-        reelsTrack: isDesktop ? reelsTrack : null,
-        onReelsWheelHandler: isDesktop ? onReelsWheelHandler : null
-      };
+      (self as any).cleanups = {};
     });
 
     return () => {
       clearInterval(timer);
-      
-      const cleanups = (ctx as any).cleanups;
-      if (cleanups) {
-        if (cleanups.track && cleanups.onWheelHandler) {
-          cleanups.track.removeEventListener('wheel', cleanups.onWheelHandler);
-        }
-        if (cleanups.reelsTrack && cleanups.onReelsWheelHandler) {
-          cleanups.reelsTrack.removeEventListener('wheel', cleanups.onReelsWheelHandler);
-        }
-      }
       ctx.revert();
     };
   }, [banners, alchemyProducts, reels]);
 
-  // Card interactive 3D Tilt handlers (using trigger parent container to stop feedback shaking)
+  // Separate effect: custom velocity-inertia scroller for Alchemy track
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth <= 768) return;
+
+    const track = scrollTrackRef.current;
+    const section = alchemyRef.current; // use section for pointer capture (covers gaps)
+    if (!track || !section) return;
+
+    // ─── Constants ───────────────────────────────────────────────────────────
+    const FRICTION      = 0.88;  // velocity decay per frame (lower = more coast)
+    const WHEEL_ACCEL   = 0.9;   // wheel delta → velocity multiplier
+    const MAX_VEL       = 70;    // max pixels/frame
+    const DRAG_THRESH   = 2;     // px before drag starts (small = gap-friendly)
+    const THROW_MULT    = 1.8;   // momentum throw multiplier on pointer up
+    const AUTO_SPEED    = 0.6;   // px/frame auto-scroll speed (≈36px/sec at 60fps)
+
+    // ─── State ───────────────────────────────────────────────────────────────
+    let velocityX     = 0;
+    let currentX      = 0;
+    let rafId         = 0;
+    let isPointerDown = false;
+    let pointerStartX = 0;
+    let dragStartX    = 0;
+    let frameVel      = 0;
+    let hasDragged    = false;
+    let lenisWasStopped = false;
+    let isHovered     = false;   // true while cursor is inside the section
+    let autoDir       = -1;      // -1 = scroll left, +1 = scroll right
+
+    const getMinX = () => -(track.scrollWidth - window.innerWidth + 80);
+    const clamp   = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+    const stopLenis  = () => { const l = (window as any).lenis; if (l && !lenisWasStopped) { l.stop(); lenisWasStopped = true; } };
+    const startLenis = () => { const l = (window as any).lenis; if (l &&  lenisWasStopped) { l.start(); lenisWasStopped = false; } };
+
+    // ─── RAF — always running: auto-scroll + user velocity ───────────────────
+    const tick = () => {
+      const minX = getMinX();
+
+      // Decay user-initiated velocity with friction
+      velocityX *= FRICTION;
+      const hasUserVel = Math.abs(velocityX) > 0.3;
+
+      // Auto-scroll contribution: only when not hovered, not dragging,
+      // and user velocity has decayed enough to avoid fighting manual input
+      let autoContrib = 0;
+      if (!isHovered && !isPointerDown && !hasUserVel) {
+        autoContrib = AUTO_SPEED * autoDir;
+      }
+
+      const next = currentX + (hasUserVel ? velocityX : 0) + autoContrib;
+
+      // Reverse auto-scroll direction at boundaries
+      if (next <= minX) {
+        currentX = minX;
+        velocityX = 0;
+        autoDir = 1;  // hit left end → go right
+      } else if (next >= 0) {
+        currentX = 0;
+        velocityX = 0;
+        autoDir = -1; // hit right end → go left
+      } else {
+        currentX = next;
+      }
+
+      track.style.transform = `translate3d(${currentX}px, 0, 0)`;
+      rafId = requestAnimationFrame(tick); // always keep running
+    };
+
+    // Start RAF immediately (drives auto-scroll from the start)
+    rafId = requestAnimationFrame(tick);
+
+    // ─── Hover — pause auto-scroll when cursor is anywhere in the section ────
+    // mouseover/mouseout + relatedTarget check is more reliable than
+    // mouseenter/mouseleave across deeply nested children (e.g. TextReveal spans).
+    const onMouseOver = () => { isHovered = true; };
+    const onMouseOut  = (e: MouseEvent) => {
+      // Only mark as un-hovered if the cursor truly left the section
+      if (!section.contains(e.relatedTarget as Node | null)) {
+        isHovered = false;
+      }
+    };
+
+    // ─── Wheel — only intercept horizontal gestures ────────────────────────
+    // Pure deltaY (mouse wheel) passes through → page scrolls normally.
+    const onWheel = (e: WheelEvent) => {
+      const absX = Math.abs(e.deltaX);
+      const absY = Math.abs(e.deltaY);
+      const isHorizontal = absX > 3 || e.shiftKey;
+      if (!isHorizontal) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      stopLenis();
+      isInteractingTrackRef.current = true;
+
+      const raw = e.shiftKey && absY > absX ? e.deltaY : e.deltaX;
+      velocityX -= raw * WHEEL_ACCEL;
+      velocityX  = clamp(velocityX, -MAX_VEL, MAX_VEL);
+
+      clearTimeout((onWheel as any)._t);
+      (onWheel as any)._t = setTimeout(() => {
+        isInteractingTrackRef.current = false;
+        startLenis();
+      }, 160);
+    };
+
+    // ─── Pointer drag — document-level tracking, no setPointerCapture ───────
+    // setPointerCapture was redirecting click events to the section instead of
+    // the card, breaking the React onClick. Document-level move/up is the fix.
+    const onDocMove = (e: PointerEvent) => {
+      if (!isPointerDown) return;
+      const dx = e.clientX - pointerStartX;
+      if (Math.abs(dx) > DRAG_THRESH) {
+        hasDragged = true;
+        isInteractingTrackRef.current = true; // only set on confirmed drag
+        track.style.cursor = 'grabbing';
+      }
+      if (!hasDragged) return;
+      const newX = clamp(dragStartX + dx, getMinX(), 0);
+      frameVel = newX - currentX;
+      currentX = newX;
+      track.style.transform = `translate3d(${currentX}px, 0, 0)`;
+    };
+
+    const onDocUp = () => {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+      track.style.cursor = 'grab';
+      document.removeEventListener('pointermove', onDocMove);
+      document.removeEventListener('pointerup',   onDocUp);
+      document.removeEventListener('pointercancel', onDocUp);
+
+      if (!hasDragged) {
+        // Simple click — reset immediately so the synchronous click event
+        // fires and the React onClick can open the modal
+        isInteractingTrackRef.current = false;
+        startLenis();
+      } else {
+        // Actual drag — launch momentum, resume after coast
+        velocityX = clamp(frameVel * THROW_MULT, -MAX_VEL, MAX_VEL);
+        if (Math.abs(frameVel) > 0.5) autoDir = frameVel < 0 ? -1 : 1;
+        setTimeout(() => { isInteractingTrackRef.current = false; startLenis(); }, 200);
+      }
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if ((e.target as HTMLElement).closest('button, a')) return;
+      isPointerDown = true;
+      hasDragged    = false;
+      pointerStartX = e.clientX;
+      dragStartX    = currentX;
+      frameVel      = 0;
+      velocityX     = 0;
+      // Do NOT set isInteractingTrackRef here — only set it on confirmed drag
+      stopLenis();
+      document.addEventListener('pointermove',   onDocMove);
+      document.addEventListener('pointerup',     onDocUp);
+      document.addEventListener('pointercancel', onDocUp);
+    };
+
+    const onClickCapture = (e: MouseEvent) => {
+      if (hasDragged) { e.stopPropagation(); e.preventDefault(); hasDragged = false; }
+    };
+
+    // Register all listeners
+    track.addEventListener('wheel',          onWheel,        { passive: false });
+    section.addEventListener('wheel',         onWheel,        { passive: false });
+    section.addEventListener('mouseover',     onMouseOver);
+    section.addEventListener('mouseout',      onMouseOut);
+    section.addEventListener('pointerdown',   onPointerDown);
+    track.addEventListener('click',           onClickCapture, true);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      clearTimeout((onWheel as any)._t);
+      startLenis();
+      document.removeEventListener('pointermove',   onDocMove);
+      document.removeEventListener('pointerup',     onDocUp);
+      document.removeEventListener('pointercancel', onDocUp);
+      track.removeEventListener('wheel',          onWheel);
+      section.removeEventListener('wheel',         onWheel);
+      section.removeEventListener('mouseover',     onMouseOver);
+      section.removeEventListener('mouseout',      onMouseOut);
+      section.removeEventListener('pointerdown',   onPointerDown);
+      track.removeEventListener('click',           onClickCapture, true);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alchemyProducts]);
+
+  // Separate effect: custom velocity-inertia scroller for Reels track
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth <= 768) return;
+
+    const reelsTrack = document.getElementById('reels-track') as HTMLElement | null;
+    if (!reelsTrack) return;
+    const reelsWrap = reelsTrack.parentElement;
+    const target = reelsWrap || reelsTrack;
+
+    const FRICTION    = 0.88;
+    const WHEEL_ACCEL = 0.9;
+    const MAX_VEL     = 70;
+    const DRAG_THRESH = 2;
+    const THROW_MULT  = 1.8;
+
+    let velocityX     = 0;
+    let currentX      = 0;
+    let rafId         = 0;
+    let isPointerDown = false;
+    let pointerStartX = 0;
+    let dragStartX    = 0;
+    let frameVel      = 0;
+    let hasDragged    = false;
+    let lenisWasStopped = false;
+
+    const getMinX  = () => -(reelsTrack.scrollWidth - window.innerWidth + 80);
+    const clamp    = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+    const stopLenis  = () => { const l = (window as any).lenis; if (l && !lenisWasStopped) { l.stop(); lenisWasStopped = true; } };
+    const startLenis = () => { const l = (window as any).lenis; if (l &&  lenisWasStopped) { l.start(); lenisWasStopped = false; } };
+
+    const tick = () => {
+      velocityX *= FRICTION;
+      if (Math.abs(velocityX) < 0.1) { velocityX = 0; rafId = 0; return; }
+      const next = clamp(currentX + velocityX, getMinX(), 0);
+      if (next === getMinX() || next === 0) velocityX = 0;
+      currentX = next;
+      reelsTrack.style.transform = `translate3d(${currentX}px, 0, 0)`;
+      rafId = requestAnimationFrame(tick);
+    };
+    const startRaf = () => { if (!rafId) rafId = requestAnimationFrame(tick); };
+
+    const onWheel = (e: WheelEvent) => {
+      const absX = Math.abs(e.deltaX);
+      const absY = Math.abs(e.deltaY);
+      if (absX <= absY * 0.5 && !e.shiftKey) return;
+      e.preventDefault();
+      e.stopPropagation();
+      stopLenis();
+      const raw = e.shiftKey && absY > absX ? e.deltaY : e.deltaX;
+      velocityX -= raw * WHEEL_ACCEL;
+      velocityX  = clamp(velocityX, -MAX_VEL, MAX_VEL);
+      startRaf();
+      clearTimeout((onWheel as any)._t);
+      (onWheel as any)._t = setTimeout(() => startLenis(), 160);
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if ((e.target as HTMLElement).closest('button, a')) return;
+      isPointerDown = true;
+      hasDragged    = false;
+      pointerStartX = e.clientX;
+      dragStartX    = currentX;
+      frameVel      = 0;
+      velocityX     = 0;
+      target.setPointerCapture(e.pointerId);
+      reelsTrack.style.cursor = 'grabbing';
+      stopLenis();
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isPointerDown) return;
+      const dx = e.clientX - pointerStartX;
+      if (Math.abs(dx) > DRAG_THRESH) hasDragged = true;
+      if (!hasDragged) return;
+      const newX = clamp(dragStartX + dx, getMinX(), 0);
+      frameVel = newX - currentX;
+      currentX = newX;
+      reelsTrack.style.transform = `translate3d(${currentX}px, 0, 0)`;
+    };
+
+    const onPointerUp = () => {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+      reelsTrack.style.cursor = 'grab';
+      velocityX = clamp(frameVel * THROW_MULT, -MAX_VEL, MAX_VEL);
+      startRaf();
+      setTimeout(() => startLenis(), 200);
+    };
+
+    const onClickCapture = (e: MouseEvent) => {
+      if (hasDragged) { e.stopPropagation(); e.preventDefault(); hasDragged = false; }
+    };
+
+    target.addEventListener('wheel',        onWheel,         { passive: false });
+    target.addEventListener('pointerdown',   onPointerDown);
+    target.addEventListener('pointermove',   onPointerMove);
+    target.addEventListener('pointerup',     onPointerUp);
+    target.addEventListener('pointercancel', onPointerUp);
+    target.addEventListener('click',         onClickCapture,  true);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      clearTimeout((onWheel as any)._t);
+      startLenis();
+      target.removeEventListener('wheel',        onWheel);
+      target.removeEventListener('pointerdown',   onPointerDown);
+      target.removeEventListener('pointermove',   onPointerMove);
+      target.removeEventListener('pointerup',     onPointerUp);
+      target.removeEventListener('pointercancel', onPointerUp);
+      target.removeEventListener('click',         onClickCapture,  true);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reels]);
+
+  // Card interactive 3D Tilt handlers
   const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isInteractingTrackRef.current) return;
     const trigger = e.currentTarget;
     const card = trigger.querySelector('.product-card') as HTMLDivElement;
     if (!card) return;
@@ -564,39 +779,37 @@ export default function Home() {
     const rect = trigger.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
-    const px = (x / rect.width) - 0.5;
-    const py = (y / rect.height) - 0.5;
-    
     card.style.setProperty('--x', `${(x / rect.width) * 100}%`);
     card.style.setProperty('--y', `${(y / rect.height) * 100}%`);
-    
-    const tiltX = -py * 16;
-    const tiltY = px * 16;
-    
-    card.classList.add('tilting');
+
+    const px = (x / rect.width) - 0.5;
+    const py = (y / rect.height) - 0.5;
+    const tiltX = -py * 12;
+    const tiltY = px * 12;
+
     gsap.to(card, {
-      transform: `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`,
-      duration: 0.15,
-      ease: "power2.out",
-      overwrite: "auto"
+      rotateX: tiltX,
+      rotateY: tiltY,
+      y: -5,
+      scale: 1.02,
+      transformPerspective: 1000,
+      duration: 0.3,
+      ease: 'power2.out',
+      overwrite: 'auto',
     });
   };
 
   const handleCardMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    const trigger = e.currentTarget;
-    const card = trigger.querySelector('.product-card') as HTMLDivElement;
+    const card = e.currentTarget.querySelector('.product-card') as HTMLDivElement;
     if (!card) return;
-
     gsap.to(card, {
-      transform: `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`,
-      duration: 0.6,
-      ease: "power3.out",
-      overwrite: "auto",
-      onComplete: () => {
-        card.classList.remove('tilting');
-        card.style.transform = '';
-      }
+      rotateX: 0,
+      rotateY: 0,
+      y: 0,
+      scale: 1,
+      duration: 0.5,
+      ease: 'power3.out',
+      overwrite: 'auto',
     });
   };
 
@@ -709,7 +922,11 @@ export default function Home() {
               <div 
                 className="product-card-trigger" 
                 key={index} 
-                onClick={() => setSelectedProduct(product)}
+                onClick={() => {
+                  if (!isInteractingTrackRef.current) {
+                    setSelectedProduct(product);
+                  }
+                }}
                 onMouseMove={handleCardMouseMove}
                 onMouseLeave={handleCardMouseLeave}
               >
@@ -719,13 +936,20 @@ export default function Home() {
                     <span className="product-badge">{product.badge}</span>
                   )}
                   <div className="product-card-img">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      width={280}
-                      height={320}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        width={280}
+                        height={320}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <div className="product-card-placeholder">
+                        <span className="placeholder-brand">ETERNYX</span>
+                        <span className="placeholder-name">{product.name}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="product-card-info">
                     <p className="product-card-category">{product.category}</p>
@@ -837,13 +1061,20 @@ export default function Home() {
                         <span className="product-badge">{product.badge}</span>
                       )}
                       <div className="product-card-img">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          width={320}
-                          height={360}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                        {product.image ? (
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            width={320}
+                            height={360}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div className="product-card-placeholder">
+                            <span className="placeholder-brand">ETERNYX</span>
+                            <span className="placeholder-name">{product.name}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="product-card-info">
                         <p className="product-card-category">{product.category}</p>
@@ -916,7 +1147,14 @@ export default function Home() {
             style={{ cursor: 'pointer' }} 
             onClick={() => setSelectedProduct(product)}
           >
-            <img src={product.image} alt={product.name} />
+            {product.image ? (
+              <img src={product.image} alt={product.name} />
+            ) : (
+              <div className="product-card-placeholder" style={{ minHeight: '140px', padding: '10px' }}>
+                <span className="placeholder-brand" style={{ fontSize: '0.8rem' }}>ETERNYX</span>
+                <span className="placeholder-name" style={{ fontSize: '0.6rem' }}>{product.name}</span>
+              </div>
+            )}
             <h3>{product.name}</h3>
             <p className="price">{product.price}</p>
             <button className="shop-now-mini">Shop Now</button>

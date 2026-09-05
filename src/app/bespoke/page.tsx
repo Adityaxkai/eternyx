@@ -297,7 +297,14 @@ export default function BespokePage() {
                 <p className="result-eyebrow">Your Olfactory Match</p>
                 <div className="result-grid">
                   <div className="result-img-box">
-                    <img src={recommendedProduct.image} alt={recommendedProduct.name} />
+                    {recommendedProduct.image ? (
+                      <img src={recommendedProduct.image} alt={recommendedProduct.name} />
+                    ) : (
+                      <div className="product-card-placeholder">
+                        <span className="placeholder-brand">ETERNYX</span>
+                        <span className="placeholder-name">{recommendedProduct.name}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="result-info">
                     <span className="result-category">{recommendedProduct.category}</span>

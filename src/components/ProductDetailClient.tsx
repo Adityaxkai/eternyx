@@ -21,9 +21,9 @@ export default function ProductDetailClient({ product, richData }: ProductDetail
 
   // Compile all images
   const allImages = [
-    product.image_url || '/images/hero.png',
+    product.image_url,
     ...(product.additional_images || [])
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 
   const altTexts = richData?.image_alt || [
     `ETERNYX ${product.name} Eau de Parfum 100ml bottle`,
@@ -38,7 +38,7 @@ export default function ProductDetailClient({ product, richData }: ProductDetail
       name: product.name,
       category: product.category,
       price: `₹${product.price}`,
-      image: product.image_url || '/images/hero.png',
+      image: product.image_url || '',
       badge: product.badge,
     };
     addToCart(productForCart, selectedSize, quantity, { x: e.clientX, y: e.clientY });
@@ -88,15 +88,22 @@ export default function ProductDetailClient({ product, richData }: ProductDetail
         <div className="pd-media-col">
           <div className="pd-main-image-wrap">
             {product.badge && <span className="pd-badge">{product.badge}</span>}
-            <Image
-              src={allImages[activeImageIdx] || allImages[0]}
-              alt={currentAlt}
-              width={650}
-              height={750}
-              priority
-              className="pd-main-img"
-              key={activeImageIdx}
-            />
+            {allImages.length > 0 ? (
+              <Image
+                src={allImages[activeImageIdx] || allImages[0]}
+                alt={currentAlt}
+                width={650}
+                height={750}
+                priority
+                className="pd-main-img"
+                key={activeImageIdx}
+              />
+            ) : (
+              <div className="pd-no-image-box">
+                <span className="placeholder-brand">ETERNYX</span>
+                <span className="placeholder-name">{product.name}</span>
+              </div>
+            )}
           </div>
 
           {/* Thumbnail Gallery */}
@@ -176,8 +183,6 @@ export default function ProductDetailClient({ product, richData }: ProductDetail
               <p className="pd-hook-text">&ldquo;{richData.hook}&rdquo;</p>
             </div>
           )}
-
-          <p className="pd-description">{product.description}</p>
 
           {/* Perfect For Tags */}
           {perfectFor.length > 0 && (
@@ -273,6 +278,14 @@ export default function ProductDetailClient({ product, richData }: ProductDetail
                   <li key={i}>{bullet}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Fragrance Story / Description */}
+          {product.description && (
+            <div className="pd-story-box" style={{ marginTop: '24px' }}>
+              <p className="pd-sublabel">The Fragrance Story</p>
+              <p className="pd-description" style={{ marginBottom: 0 }}>{product.description}</p>
             </div>
           )}
         </div>

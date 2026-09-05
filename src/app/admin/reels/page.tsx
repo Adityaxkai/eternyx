@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Reel } from '@/services/reelService';
+import { compressImage } from '@/lib/compressImage';
 
 const isDirectVideo = (url: string) => {
   if (!url) return false;
@@ -118,11 +119,12 @@ export default function ReelsPage() {
   };
 
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
     setUploading(true);
     try {
+      const file = await compressImage(rawFile);
       const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
         method: 'POST',
         headers: {

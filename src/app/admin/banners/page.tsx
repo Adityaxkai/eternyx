@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Banner } from '@/services/bannerService';
+import { compressImage } from '@/lib/compressImage';
 
 export default function BannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -131,8 +132,8 @@ export default function BannersPage() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isMobileType: boolean) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
     if (isMobileType) {
       setUploadingMobile(true);
@@ -141,6 +142,12 @@ export default function BannersPage() {
     }
 
     try {
+      const file = await compressImage(rawFile, {
+        maxWidth: isMobileType ? 1200 : 2560,
+        maxHeight: isMobileType ? 1600 : 1440,
+        quality: 0.88,
+      });
+
       const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
         method: 'POST',
         headers: {
