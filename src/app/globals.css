@@ -670,11 +670,12 @@ h1, h2, h3 {
   gap: 20px;
   z-index: 1000;
   padding: 0 20px 0 100px;
-  pointer-events: auto;
+  pointer-events: none;
   background: transparent;
 }
 
 .product-spotlight {
+  pointer-events: auto;
   width: 140px;
   text-align: center;
   background: rgba(0, 0, 0, 0.5);
@@ -834,8 +835,6 @@ h1, h2, h3 {
   text-align: left;
   margin-bottom: 30px;
   padding: 0 6%;
-  opacity: 0;
-  transform: translateX(-100px);
 }
 
 .alchemy-header .category {
@@ -852,6 +851,14 @@ h1, h2, h3 {
   font-weight: 300;
   letter-spacing: 0.1em;
   font-family: var(--font-serif);
+}
+
+/* --- Prevent hover/tilt layout thrashing while scrolling --- */
+body.is-scrolling .product-card-trigger,
+body.is-scrolling .product-card,
+body.is-scrolling .product-spotlight,
+body.is-scrolling .reel-card {
+  pointer-events: none !important;
 }
 
 /* --- Fade Edges --- */

@@ -14,9 +14,7 @@ export default function SmoothScroll() {
     if (typeof window === 'undefined' || isAdmin) return;
 
     const lenis = new Lenis({
-      duration: 0.8,
       lerp: 0.1,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       syncTouch: false,
     });
@@ -24,8 +22,18 @@ export default function SmoothScroll() {
     // Expose lenis globally so modal can stop/start it
     (window as any).lenis = lenis;
 
-    // Synchronize Lenis with ScrollTrigger
-    lenis.on('scroll', ScrollTrigger.update);
+    // Synchronize Lenis with ScrollTrigger and toggle is-scrolling class
+    let scrollTimer: ReturnType<typeof setTimeout> | null = null;
+    lenis.on('scroll', () => {
+      ScrollTrigger.update();
+      if (!document.body.classList.contains('is-scrolling')) {
+        document.body.classList.add('is-scrolling');
+      }
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        document.body.classList.remove('is-scrolling');
+      }, 120);
+    });
 
     const raf = (time: number) => {
       lenis.raf(time * 1000);
@@ -35,6 +43,8 @@ export default function SmoothScroll() {
     gsap.ticker.lagSmoothing(0);
 
     return () => {
+      if (scrollTimer) clearTimeout(scrollTimer);
+      document.body.classList.remove('is-scrolling');
       lenis.destroy();
       gsap.ticker.remove(raf);
       delete (window as any).lenis;
