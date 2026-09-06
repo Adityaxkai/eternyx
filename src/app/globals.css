@@ -1648,23 +1648,32 @@ h1, h2, h3 {
   }
 
   /* The Alchemy Section */
+  .alchemy {
+    overflow-x: hidden !important;
+    touch-action: pan-y !important;
+  }
   .alchemy-fade-left,
   .alchemy-fade-right {
-    width: 40px !important;
+    display: none !important;
   }
   .product-scroll-track {
     overflow-x: auto !important;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    user-select: auto;
-    cursor: default;
-    scrollbar-width: none;
+    overflow-y: hidden !important;
+    scroll-snap-type: x proximity !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+    user-select: auto !important;
+    cursor: default !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
   .product-scroll-track::-webkit-scrollbar {
-    display: none;
+    display: none !important;
   }
   .product-card-trigger {
-    scroll-snap-align: start;
+    flex: 0 0 240px !important;
+    min-width: 240px !important;
+    scroll-snap-align: center !important;
   }
 
   /* Influencer Reels Slider */
@@ -1728,6 +1737,10 @@ h1, h2, h3 {
   }
 
   /* The Alchemy Section - Card scaling to teasers */
+  .product-card-trigger {
+    flex: 0 0 225px !important;
+    min-width: 225px !important;
+  }
   .product-card {
     flex: 0 0 225px !important;
   }

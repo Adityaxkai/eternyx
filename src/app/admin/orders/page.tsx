@@ -29,6 +29,7 @@ interface Order {
     id: string;
     name: string;
     email: string;
+    phone?: string;
     spent: number;
     orders: number;
     lastActive: string;
@@ -37,6 +38,9 @@ interface Order {
   shipping_tracking_id?: string | null;
   shipping_label_url?: string | null;
   shipping_cost?: number | null;
+  payment_status?: string;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
   created_at: string;
 }
 
@@ -247,7 +251,8 @@ export default function OrdersPage() {
     const orderIdMatch = o.id.toLowerCase().includes(query);
     const customerNameMatch = o.customer?.name.toLowerCase().includes(query) || false;
     const customerEmailMatch = o.customer?.email.toLowerCase().includes(query) || false;
-    return orderIdMatch || customerNameMatch || customerEmailMatch;
+    const customerPhoneMatch = o.customer?.phone?.toLowerCase().includes(query) || false;
+    return orderIdMatch || customerNameMatch || customerEmailMatch || customerPhoneMatch;
   });
 
   return (
@@ -306,6 +311,11 @@ export default function OrdersPage() {
                     <div>
                       <p className="cust-name">{order.customer.name}</p>
                       <p className="cust-email">{order.customer.email}</p>
+                      {order.customer.phone && (
+                        <p className="cust-phone" style={{ fontSize: '0.8rem', color: '#d4af37', marginTop: '3px', fontWeight: 500 }}>
+                          📞 {order.customer.phone}
+                        </p>
+                      )}
                     </div>
                   ) : (
                     'Guest User'
@@ -318,6 +328,19 @@ export default function OrdersPage() {
                   <span className={`status-badge ${order.status.toLowerCase()}`}>
                     {order.status}
                   </span>
+                  {order.payment_status === 'Paid' ? (
+                    <span style={{ display: 'inline-block', marginTop: '5px', fontSize: '0.72rem', padding: '2px 7px', borderRadius: '3px', background: 'rgba(39, 174, 96, 0.2)', color: '#2ecc71', fontWeight: 700, border: '1px solid rgba(46, 204, 113, 0.35)', letterSpacing: '0.04em' }}>
+                      ✓ PAID
+                    </span>
+                  ) : order.payment_status === 'Failed' ? (
+                    <span style={{ display: 'inline-block', marginTop: '5px', fontSize: '0.72rem', padding: '2px 7px', borderRadius: '3px', background: 'rgba(231, 76, 60, 0.2)', color: '#e74c3c', fontWeight: 700, border: '1px solid rgba(231, 76, 60, 0.35)', letterSpacing: '0.04em' }}>
+                      ✕ FAILED
+                    </span>
+                  ) : (
+                    <span style={{ display: 'inline-block', marginTop: '5px', fontSize: '0.72rem', padding: '2px 7px', borderRadius: '3px', background: 'rgba(243, 156, 18, 0.15)', color: '#f39c12', fontWeight: 700, border: '1px solid rgba(243, 156, 18, 0.35)', letterSpacing: '0.04em' }}>
+                      ⏳ UNPAID
+                    </span>
+                  )}
                 </div>
                 <div className="col-actions">
                   <button className="action-link" onClick={() => handleOpenDetails(order)}>View Details</button>
@@ -342,9 +365,67 @@ export default function OrdersPage() {
             </div>
 
             <div className="drawer-content">
+              {/* Payment Verification Card */}
+              <div className="info-card payment-card" style={{ 
+                background: selectedOrder.payment_status === 'Paid' ? 'rgba(46, 204, 113, 0.08)' : 'rgba(243, 156, 18, 0.08)',
+                border: selectedOrder.payment_status === 'Paid' ? '1px solid rgba(46, 204, 113, 0.4)' : '1px solid rgba(243, 156, 18, 0.4)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', color: '#fff' }}>
+                    <span>💳</span> Payment Status
+                  </h3>
+                  {selectedOrder.payment_status === 'Paid' ? (
+                    <span style={{ background: '#27ae60', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                      PAID ✓
+                    </span>
+                  ) : selectedOrder.payment_status === 'Failed' ? (
+                    <span style={{ background: '#e74c3c', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                      FAILED ✕
+                    </span>
+                  ) : (
+                    <span style={{ background: '#e67e22', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                      UNPAID / PENDING ⏳
+                    </span>
+                  )}
+                </div>
+
+                <div className="info-grid">
+                  <div>
+                    <p className="info-label">Payment Gateway</p>
+                    <p className="info-val" style={{ fontWeight: 600 }}>Razorpay Secure</p>
+                  </div>
+                  <div>
+                    <p className="info-label">Order Total</p>
+                    <p className="info-val" style={{ color: '#d4af37', fontWeight: 700, fontSize: '1.05rem' }}>₹{Number(selectedOrder.total).toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="info-label">Razorpay Order ID</p>
+                    <p className="info-val" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                      {selectedOrder.razorpay_order_id || 'Not initiated'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="info-label">Razorpay Payment ID</p>
+                    <p className="info-val" style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: selectedOrder.razorpay_payment_id ? '#2ecc71' : '#888' }}>
+                      {selectedOrder.razorpay_payment_id || 'None (Payment not captured)'}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedOrder.payment_status !== 'Paid' ? (
+                  <p style={{ marginTop: '14px', marginBottom: 0, fontSize: '0.8rem', color: '#f39c12', background: 'rgba(243, 156, 18, 0.12)', padding: '10px 14px', borderRadius: '4px', lineHeight: 1.5 }}>
+                    ⚠️ <strong>Payment Not Received:</strong> Razorpay has not confirmed payment for this order yet. Do not ship items until status shows <strong>PAID ✓</strong>.
+                  </p>
+                ) : (
+                  <p style={{ marginTop: '14px', marginBottom: 0, fontSize: '0.8rem', color: '#2ecc71', background: 'rgba(46, 204, 113, 0.12)', padding: '10px 14px', borderRadius: '4px', lineHeight: 1.5 }}>
+                    ✓ <strong>Payment Confirmed:</strong> Transaction was verified and funds have been received via Razorpay. Safe to dispatch.
+                  </p>
+                )}
+              </div>
+
               {/* Status Update Card */}
               <div className="info-card status-card">
-                <label htmlFor="ord-status-sel">Redemption Status</label>
+                <label htmlFor="ord-status-sel">Redemption / Delivery Status</label>
                 <div className="status-selector-row">
                   <span className={`status-badge big ${selectedOrder.status.toLowerCase()}`}>
                     {selectedOrder.status}
@@ -376,6 +457,37 @@ export default function OrdersPage() {
                     <div>
                       <p className="info-label">Email</p>
                       <p className="info-val">{selectedOrder.customer.email}</p>
+                    </div>
+                    <div>
+                      <p className="info-label">Contact Number</p>
+                      {selectedOrder.customer.phone ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                          <a 
+                            href={`tel:${selectedOrder.customer.phone}`} 
+                            style={{ color: '#d4af37', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem' }}
+                          >
+                            📞 {selectedOrder.customer.phone}
+                          </a>
+                          <a 
+                            href={`https://wa.me/${selectedOrder.customer.phone.replace(/[^0-9]/g, '')}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            style={{ 
+                              background: '#25D366', 
+                              color: '#fff', 
+                              padding: '2px 8px', 
+                              borderRadius: '4px', 
+                              fontSize: '11px', 
+                              textDecoration: 'none', 
+                              fontWeight: 600 
+                            }}
+                          >
+                            WhatsApp
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="info-val" style={{ color: '#777' }}>Not provided</p>
+                      )}
                     </div>
                   </div>
                 ) : (

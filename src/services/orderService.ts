@@ -4,13 +4,17 @@ import { Order, OrderItem } from '@/lib/types';
 export const orderService = {
   getAll: async (status?: string): Promise<Order[]> => {
     try {
-      let sql = 'SELECT * FROM orders';
+      let sql = `
+        SELECT o.*, c.phone as customer_phone 
+        FROM orders o 
+        LEFT JOIN customers c ON (o.customer_id = c.id OR (o.customer_id IS NULL AND o.customer_email = c.email AND o.customer_email != ''))
+      `;
       const params: any[] = [];
       if (status && status !== 'all') {
-        sql += ' WHERE status = ?';
+        sql += ' WHERE o.status = ?';
         params.push(status);
       }
-      sql += ' ORDER BY created_at DESC';
+      sql += ' ORDER BY o.created_at DESC';
 
       const orders = await query<any[]>(sql, params);
       
@@ -24,6 +28,7 @@ export const orderService = {
               id: o.customer_id || '',
               name: o.customer_name || '',
               email: o.customer_email || '',
+              phone: o.customer_phone || '',
               spent: 0, // Mock/derived fields
               orders: 0,
               lastActive: '',
@@ -44,7 +49,12 @@ export const orderService = {
 
   getById: async (id: string): Promise<Order | null> => {
     try {
-      const orders = await query<any[]>('SELECT * FROM orders WHERE id = ?', [id]);
+      const orders = await query<any[]>(`
+        SELECT o.*, c.phone as customer_phone 
+        FROM orders o 
+        LEFT JOIN customers c ON (o.customer_id = c.id OR (o.customer_id IS NULL AND o.customer_email = c.email AND o.customer_email != ''))
+        WHERE o.id = ?
+      `, [id]);
       if (orders.length === 0) return null;
       
       const o = orders[0];
@@ -56,6 +66,7 @@ export const orderService = {
           id: o.customer_id || '',
           name: o.customer_name || '',
           email: o.customer_email || '',
+          phone: o.customer_phone || '',
           spent: 0,
           orders: 0,
           lastActive: '',

@@ -14,7 +14,7 @@ export const bannerService = {
   getAll: async (): Promise<Banner[]> => {
     try {
       const banners = await query<Banner[]>('SELECT * FROM banners ORDER BY position ASC');
-      return banners.map(b => ({ ...b, active: Boolean(b.active) }));
+      return banners.map(b => ({ ...b, active: Boolean(b.active), is_mobile_first: Boolean(b.is_mobile_first) }));
     } catch (e) {
       console.error(e);
       return [];
@@ -25,7 +25,7 @@ export const bannerService = {
     try {
       const banners = await query<Banner[]>('SELECT * FROM banners WHERE id = ?', [id]);
       if (banners.length === 0) return null;
-      return { ...banners[0], active: Boolean(banners[0].active) };
+      return { ...banners[0], active: Boolean(banners[0].active), is_mobile_first: Boolean(banners[0].is_mobile_first) };
     } catch (e) {
       console.error(e);
       return null;
@@ -39,8 +39,8 @@ export const bannerService = {
       const position = countRes[0].count;
       
       await query(
-        'INSERT INTO banners (id, image_url, mobile_image_url, position, active) VALUES (?, ?, ?, ?, ?)',
-        [id, data.image_url, data.mobile_image_url, position, data.active ? 1 : 0]
+        'INSERT INTO banners (id, image_url, mobile_image_url, position, active, is_mobile_first) VALUES (?, ?, ?, ?, ?, ?)',
+        [id, data.image_url, data.mobile_image_url, position, data.active ? 1 : 0, data.is_mobile_first ? 1 : 0]
       );
       return await bannerService.getById(id);
     } catch (e) {

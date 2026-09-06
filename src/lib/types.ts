@@ -58,6 +58,16 @@ export interface Order {
   customer_id?: string | null;
   customer_name: string;
   customer_email: string;
+  customer_phone?: string;
+  customer?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    spent?: number;
+    orders?: number;
+    lastActive?: string;
+  };
   total: number;
   status: string;
   shipping_address: {

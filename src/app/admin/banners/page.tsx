@@ -135,6 +135,9 @@ export default function BannersPage() {
     const rawFile = e.target.files?.[0];
     if (!rawFile) return;
 
+    // Reset input so selecting the same file triggers change
+    const inputElement = e.target;
+
     if (isMobileType) {
       setUploadingMobile(true);
     } else {
@@ -143,15 +146,16 @@ export default function BannersPage() {
 
     try {
       const file = await compressImage(rawFile, {
-        maxWidth: isMobileType ? 1200 : 2560,
-        maxHeight: isMobileType ? 1600 : 1440,
-        quality: 0.88,
+        maxWidth: isMobileType ? 1080 : 1920,
+        maxHeight: isMobileType ? 1440 : 1080,
+        quality: 0.82,
+        mimeType: 'image/webp',
       });
 
       const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
         method: 'POST',
         headers: {
-          'Content-Type': file.type || 'image/jpeg',
+          'Content-Type': file.type || 'image/webp',
           'x-filename': file.name,
         },
         body: file,
@@ -172,6 +176,7 @@ export default function BannersPage() {
       console.error(err);
       alert(err.message || 'Upload error.');
     } finally {
+      if (inputElement) inputElement.value = '';
       if (isMobileType) {
         setUploadingMobile(false);
       } else {

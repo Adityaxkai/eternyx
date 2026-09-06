@@ -14,6 +14,7 @@ interface Customer {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   spent: number;
   orders: number;
   lastActive: string;
@@ -124,7 +125,14 @@ export default function CustomersPage() {
                   <div className="avatar">{customer.name.charAt(0).toUpperCase()}</div>
                   <strong>{customer.name}</strong>
                 </div>
-                <div className="col-email">{customer.email}</div>
+                <div className="col-email">
+                  <div>{customer.email}</div>
+                  {customer.phone && (
+                    <div style={{ fontSize: '0.8rem', color: '#d4af37', marginTop: '2px', fontWeight: 500 }}>
+                      📞 {customer.phone}
+                    </div>
+                  )}
+                </div>
                 <div className="col-orders">
                   {customer.order_count !== undefined ? customer.order_count : customer.orders} orders
                 </div>
@@ -160,6 +168,13 @@ export default function CustomersPage() {
                 <div>
                   <h3>{detailedCustomer.name}</h3>
                   <p className="profile-email">{detailedCustomer.email}</p>
+                  {(detailedCustomer as any).phone && (
+                    <p style={{ marginTop: '4px', fontSize: '0.85rem' }}>
+                      <a href={`tel:${(detailedCustomer as any).phone}`} style={{ color: '#d4af37', textDecoration: 'none', fontWeight: 600 }}>
+                        📞 {(detailedCustomer as any).phone}
+                      </a>
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="profile-stats-grid">

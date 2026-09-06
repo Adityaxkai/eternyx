@@ -917,7 +917,7 @@ export default function Home() {
           <div className="alchemy-fade-left" />
           <div className="alchemy-fade-right" />
 
-          <div className="product-scroll-track" ref={scrollTrackRef}>
+          <div className="product-scroll-track" ref={scrollTrackRef} data-lenis-prevent>
             {alchemyProducts.map((product, index) => (
               <div 
                 className="product-card-trigger" 
