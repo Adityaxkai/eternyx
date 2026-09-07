@@ -29,6 +29,7 @@ export default function ReelsPage() {
 
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -157,22 +158,91 @@ export default function ReelsPage() {
     const inputElement = e.target;
 
     setUploadingVideo(true);
+    setUploadProgress(0);
+
     try {
-      const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
+      // 1. Initialize Direct Resumable Upload Session (only sends ~100 bytes JSON through Vercel)
+      const initRes = await fetch('/api/admin/upload/init', {
         method: 'POST',
-        headers: {
-          'Content-Type': file.type || 'video/mp4',
-          'x-filename': file.name,
-        },
-        body: file,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || 'video/mp4',
+          fileSize: file.size,
+        }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setFormVideoUrl(data.url);
+      if (initRes.ok) {
+        const { uploadUrl } = await initRes.json();
+
+        // 2. Direct upload to Google Drive using XMLHttpRequest for real-time progress
+        const fileId = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', uploadUrl, true);
+          xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              setUploadProgress(percent);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status === 200 || xhr.status === 201) {
+              try {
+                const data = JSON.parse(xhr.responseText);
+                resolve(data.id);
+              } catch {
+                reject(new Error('Invalid response received from upload service.'));
+              }
+            } else {
+              reject(new Error(`Direct upload failed with status ${xhr.status}.`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Network error during video upload.'));
+          xhr.ontimeout = () => reject(new Error('Video upload timed out.'));
+
+          xhr.send(file);
+        });
+
+        // 3. Finalize Google Drive permissions and get the /api/video/[id] streaming URL
+        const completeRes = await fetch('/api/admin/upload/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileId,
+            isVideo: true,
+          }),
+        });
+
+        if (!completeRes.ok) {
+          const errData = await completeRes.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to complete video registration.');
+        }
+
+        const completeData = await completeRes.json();
+        setFormVideoUrl(completeData.url);
       } else {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || 'Failed to upload video.');
+        // Fallback: If init failed (e.g., local storage mode), attempt traditional upload
+        console.warn('Direct upload init failed, attempting fallback upload...');
+        const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': file.type || 'video/mp4',
+            'x-filename': file.name,
+          },
+          body: file,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setFormVideoUrl(data.url);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Failed to upload video.');
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -180,6 +250,7 @@ export default function ReelsPage() {
     } finally {
       if (inputElement) inputElement.value = '';
       setUploadingVideo(false);
+      setUploadProgress(null);
     }
   };
 
@@ -435,7 +506,9 @@ export default function ReelsPage() {
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    {uploadingVideo ? 'Uploading...' : 'Replace Video'}
+                    {uploadingVideo 
+                      ? (uploadProgress !== null ? `Uploading (${uploadProgress}%)...` : 'Uploading...') 
+                      : 'Replace Video'}
                   </label>
                 </div>
               ) : (
@@ -463,7 +536,9 @@ export default function ReelsPage() {
                   </svg>
                   <div>
                     <span style={{ color: '#d4af37', fontWeight: 500, fontSize: '0.85rem' }}>
-                      {uploadingVideo ? 'Uploading video file...' : 'Click to Upload Video (.mp4)'}
+                      {uploadingVideo 
+                        ? (uploadProgress !== null ? `Uploading video file (${uploadProgress}%)...` : 'Uploading video file...') 
+                        : 'Click to Upload Video (.mp4)'}
                     </span>
                     <p style={{ margin: '4px 0 0 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
                       Select an MP4 video file to play on hover
