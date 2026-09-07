@@ -228,16 +228,6 @@ export default function Footer() {
           </div>
           <div className="base-right">
             <span className="locale-indicator">Grasse | English</span>
-            <span className="developer-separator">|</span>
-            <a 
-              href="https://www.linkedin.com/in/adityakumarwork" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="dev-signature-link"
-              title="Developer Portfolio"
-            >
-              Developer ✦
-            </a>
           </div>
         </section>
       </div>
@@ -385,23 +375,7 @@ export default function Footer() {
           margin: 0;
         }
 
-        .developer-separator {
-          margin: 0 10px;
-          color: rgba(255, 255, 255, 0.15);
-        }
 
-        .dev-signature-link {
-          color: rgba(255, 255, 255, 0.45) !important;
-          text-decoration: none;
-          transition: color 0.3s ease, transform 0.3s ease;
-          display: inline-block;
-          font-weight: 400;
-        }
-
-        .dev-signature-link:hover {
-          color: #d4af37 !important;
-          transform: translateY(-1px);
-        }
 
         .policy-links {
           display: flex;
