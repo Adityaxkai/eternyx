@@ -6,10 +6,11 @@ import ProductModal, { Product } from '@/components/ProductModal';
 import { useCart } from '@/context/CartContext';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-const CATEGORIES = ['All', 'Eau de Parfum', 'Luxury Blend', 'Limited Edition', 'Signature Scent'];
+import { DEFAULT_CATEGORIES } from '@/lib/types';
 
 function ShopContent() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>(['All', ...DEFAULT_CATEGORIES]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -18,28 +19,60 @@ function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get('q') || '';
+  const categoryParam = searchParams.get('category') || '';
 
   useEffect(() => {
-    fetch('/api/products')
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          const mapped = data.map((p: any) => ({
-            name: p.name,
-            category: p.category,
-            price: typeof p.price === 'number' ? `₹${p.price}` : p.price,
-            image: p.image_url || '',
-            badge: p.badge || null,
-            additional_images: p.additional_images || [],
-          }));
-          setProducts(mapped);
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [categoryParam]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [prodRes, catRes] = await Promise.allSettled([
+          fetch('/api/products'),
+          fetch('/api/categories'),
+        ]);
+
+        let mappedProducts: Product[] = [];
+        if (prodRes.status === 'fulfilled' && prodRes.value.ok) {
+          const data = await prodRes.value.json();
+          if (Array.isArray(data)) {
+            mappedProducts = data.map((p: any) => ({
+              name: p.name,
+              category: p.category,
+              price: typeof p.price === 'number' ? `₹${p.price}` : p.price,
+              image: p.image_url || '',
+              badge: p.badge || null,
+              additional_images: p.additional_images || [],
+            }));
+            setProducts(mappedProducts);
+          }
         }
+
+        let loadedCats: string[] = [];
+        if (catRes.status === 'fulfilled' && catRes.value.ok) {
+          const catData = await catRes.value.json();
+          if (Array.isArray(catData) && catData.length > 0) {
+            loadedCats = catData;
+          }
+        }
+        if (loadedCats.length === 0) {
+          loadedCats = [...DEFAULT_CATEGORIES];
+        }
+
+        const prodCats = Array.from(new Set(mappedProducts.map((p) => p.category).filter(Boolean)));
+        const mergedCats = Array.from(new Set([...loadedCats, ...prodCats]));
+        setCategories(['All', ...mergedCats]);
+      } catch (err) {
+        console.error('Failed to fetch shop data:', err);
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch shop products:', err);
-        setLoading(false);
-      });
+      }
+    };
+
+    loadData();
   }, []);
 
   const filteredProducts = products.filter((product) => {
@@ -87,10 +120,10 @@ function ShopContent() {
         {/* Category Navigation */}
         <section className="shop-filters-section">
           <div className="shop-filters">
-            {CATEGORIES.map((category) => (
+            {categories.map((category) => (
               <button
                 key={category}
-                className={`filter-btn ${selectedCategory === category ? 'active' : ''}`}
+                className={`filter-btn ${selectedCategory.toLowerCase() === category.toLowerCase() ? 'active' : ''}`}
                 onClick={() => setSelectedCategory(category)}
               >
                 {category}
@@ -136,6 +169,8 @@ function ShopContent() {
                         width={400}
                         height={460}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        referrerPolicy="no-referrer"
+                        unoptimized={Boolean(product.image?.includes('drive.google.com') || product.image?.includes('googleusercontent.com'))}
                       />
                     ) : (
                       <div className="product-card-placeholder">

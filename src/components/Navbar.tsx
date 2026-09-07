@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import { DEFAULT_CATEGORIES } from '@/lib/types';
 
 const ANNOUNCEMENTS = [
   'COMPLIMENTARY SHIPPING GLOBALLY ON ALL ORDERS',
@@ -19,8 +20,24 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [announcementIndex, setAnnouncementIndex] = useState(0);
   const { setIsCartOpen, cartCount } = useCart();
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
 
-  const close = () => setIsMenuOpen(false);
+  const close = () => {
+    setIsMenuOpen(false);
+    setIsCategoriesOpen(false);
+  };
+
+  useEffect(() => {
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setCategories(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -175,12 +192,74 @@ export default function Navbar() {
 
         {/* Navigation links */}
         <nav className="mobile-menu-links">
+          {/* 01 Shop Collection + Categories Submenu */}
+          <div className="mobile-menu-group">
+            <div className="mobile-menu-row">
+              <Link
+                href="/shop"
+                onClick={close}
+                className="mobile-menu-link has-sub"
+                style={{ '--link-index': 0 } as React.CSSProperties}
+              >
+                <span className="mobile-menu-link-num">01</span>
+                <span>Shop Collection</span>
+              </Link>
+              <button
+                type="button"
+                className={`mobile-cat-toggle-btn ${isCategoriesOpen ? 'open' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCategoriesOpen(!isCategoriesOpen);
+                }}
+                aria-label="Toggle fragrance categories"
+              >
+                <span className="toggle-text">Categories</span>
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  className="toggle-chevron"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Category Submenu Accordion */}
+            <div className={`mobile-category-subpanel ${isCategoriesOpen ? 'expanded' : ''}`}>
+              <div className="mobile-category-list">
+                <Link
+                  href="/shop"
+                  onClick={close}
+                  className="mobile-category-item all-item"
+                >
+                  <span className="cat-bullet">✦</span>
+                  <span className="cat-name">All Fragrances</span>
+                  <span className="cat-arrow">→</span>
+                </Link>
+                {categories.map((cat) => (
+                  <Link
+                    key={cat}
+                    href={`/shop?category=${encodeURIComponent(cat)}`}
+                    onClick={close}
+                    className="mobile-category-item"
+                  >
+                    <span className="cat-bullet">·</span>
+                    <span className="cat-name">{cat}</span>
+                    <span className="cat-arrow">→</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {[
-            { href: '/shop', label: 'Shop Collection' },
             { href: '/alchemy', label: 'The Alchemy' },
             { href: '/story', label: 'Our Story' },
             { href: '/bespoke', label: 'Bespoke' },
-            { href: '/journal', label: 'The Journal' },
             { href: '/contact', label: 'Contact' },
           ].map(({ href, label }, i) => (
             <Link
@@ -188,10 +267,10 @@ export default function Navbar() {
               href={href}
               onClick={close}
               className="mobile-menu-link"
-              style={{ '--link-index': i } as React.CSSProperties}
+              style={{ '--link-index': i + 1 } as React.CSSProperties}
             >
-              <span className="mobile-menu-link-num">0{i + 1}</span>
-              {label}
+              <span className="mobile-menu-link-num">0{i + 2}</span>
+              <span>{label}</span>
             </Link>
           ))}
         </nav>
@@ -199,11 +278,7 @@ export default function Navbar() {
         {/* Footer */}
         <div className="mobile-menu-footer">
           <div className="mobile-menu-socials">
-            <a href="#" aria-label="Instagram">Instagram</a>
-            <span className="mobile-menu-social-dot">·</span>
-            <a href="#" aria-label="Pinterest">Pinterest</a>
-            <span className="mobile-menu-social-dot">·</span>
-            <a href="#" aria-label="TikTok">TikTok</a>
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>
           </div>
           <p>© 2026 ETERNYX LUXURY. All Rights Reserved.</p>
         </div>

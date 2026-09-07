@@ -103,8 +103,8 @@ export async function POST(request: Request) {
           });
 
           url = isVideo
-            ? `https://drive.google.com/uc?export=download&id=${fileId}`
-            : `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+            ? `/api/video/${fileId}`
+            : `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
 
           console.log('✓ Successfully uploaded to Google Drive:', url);
         }

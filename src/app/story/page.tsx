@@ -9,33 +9,27 @@ interface TimelineEvent {
 
 const timelineEvents: TimelineEvent[] = [
   {
-    year: '2022',
+    year: '2025',
     title: 'The Genesis',
-    description: 'ETERNYX was founded in Grasse, France—the cradle of perfumery—by a collective of independent noses seeking to strip away commercial noise and return to pure, undiluted oil extractions.',
-    location: 'Grasse, France'
-  },
-  {
-    year: '2023',
-    title: 'Olfactory Silence',
-    description: 'We published the "Silence is Luxury" manifesto, introducing our signature design language: matte black violet glass bottles, minimalist labels, and complex, slow-evaporating skin scents.',
-    location: 'Atelier de L\'Odorat'
-  },
-  {
-    year: '2024',
-    title: 'The Formulation Studio',
-    description: 'Opened our signature virtual formulation studio. A private, reservation-only digital workspace where clients could consult directly with master perfumers away from public view.',
-    location: 'Grasse, France'
+    description: 'ETERNYX began with a vision to create fragrances that go beyond the ordinary. What started as an idea became a journey to build a distinctive fragrance brand rooted in elegance, individuality, and timeless character.',
+    location: 'ETERNYX'
   },
   {
     year: '2025',
-    title: 'Bespoke Commissions',
-    description: 'Launched the Bespoke Project, creating custom, signature formulations for private art collectors and scent purists. Every bespoke formula is registered and archived forever.',
-    location: 'Grasse Laboratory'
+    title: 'The First Creation',
+    description: 'Our first fragrances took shape. From selecting distinctive notes to refining every detail of the bottle and packaging, we began creating an identity that could truly belong to ETERNYX.',
+    location: 'ETERNYX'
   },
   {
     year: '2026',
-    title: 'The Global Archive',
-    description: 'Eternyx expands to select exclusive private online collectors worldwide, preserving our commitment to small-batch formulations and silent exclusivity.',
+    title: 'The Evolution',
+    description: 'ETERNYX entered a new chapter. With new fragrances, stronger branding, and a growing community of fragrance lovers, our vision continues to evolve while staying true to where it began.',
+    location: 'ETERNYX'
+  },
+  {
+    year: '2026',
+    title: 'The Journey Ahead',
+    description: 'Today, ETERNYX continues its journey with one purpose — to create fragrances that are remembered, not just worn.',
     location: 'Worldwide'
   }
 ];
@@ -77,7 +71,7 @@ export default function StoryPage() {
       <section className="timeline-section">
         <div className="timeline-header">
           <h2>The Chronology</h2>
-          <p>The milestones defining our journey in olfactory architecture</p>
+          <p>The milestones defining our journey in fragrance.</p>
         </div>
 
         <div className="timeline-tree">
@@ -101,6 +95,15 @@ export default function StoryPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="story-closing">
+          <div className="gold-accent-line" />
+          <span className="closing-brand">ETERNYX</span>
+          <p className="closing-quote">
+            Not just a fragrance.<br />
+            A statement that remains.
+          </p>
         </div>
       </section>
 
@@ -337,6 +340,31 @@ export default function StoryPage() {
           color: rgba(255, 255, 255, 0.55);
           line-height: 1.6;
           font-weight: 300;
+        }
+
+        .story-closing {
+          text-align: center;
+          margin-top: 80px;
+          padding: 40px 20px 20px 20px;
+        }
+
+        .closing-brand {
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.35em;
+          color: #d4af37;
+          display: block;
+          margin-bottom: 16px;
+          font-weight: 500;
+        }
+
+        .closing-quote {
+          font-family: var(--font-serif);
+          font-size: 1.45rem;
+          color: #ffffff;
+          line-height: 1.6;
+          font-weight: 300;
+          letter-spacing: 0.04em;
         }
 
         @media (max-width: 768px) {

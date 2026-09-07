@@ -97,6 +97,11 @@ export default function ProductDetailClient({ product, richData }: ProductDetail
                 priority
                 className="pd-main-img"
                 key={activeImageIdx}
+                referrerPolicy="no-referrer"
+                unoptimized={Boolean(
+                  (allImages[activeImageIdx] || allImages[0])?.includes('drive.google.com') ||
+                  (allImages[activeImageIdx] || allImages[0])?.includes('googleusercontent.com')
+                )}
               />
             ) : (
               <div className="pd-no-image-box">
@@ -120,6 +125,7 @@ export default function ProductDetailClient({ product, richData }: ProductDetail
                     src={img}
                     alt={altTexts[idx] || `${product.name} thumbnail ${idx + 1}`}
                     className="pd-thumb-img"
+                    referrerPolicy="no-referrer"
                   />
                 </button>
               ))}
@@ -564,6 +570,8 @@ export default function ProductDetailClient({ product, richData }: ProductDetail
           width: 100%;
           height: 100%;
           object-fit: cover;
+          object-position: center bottom;
+          background: #080808;
           transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 

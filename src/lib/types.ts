@@ -145,3 +145,36 @@ export interface JournalEntry {
   status: string;
   created_at?: string;
 }
+
+export interface PhilosophyConfig {
+  eyebrow: string;
+  headlinePart1: string;
+  headlinePart2: string;
+  description: string;
+  buttonText: string;
+  buttonUrl: string;
+  imageUrl: string;
+}
+
+export const DEFAULT_PHILOSOPHY: PhilosophyConfig = {
+  eyebrow: 'Our Philosophy',
+  headlinePart1: 'Silence',
+  headlinePart2: 'Is Luxury.',
+  description: 'We reject the noise of conventional fragrance. ETERNYX engineers scents that speak without words — complex, enduring, and impossibly refined. A sanctuary for those who know.',
+  buttonText: 'About Us',
+  buttonUrl: '/story',
+  imageUrl: '/images/brand-statement.png'
+};
+
+export const DEFAULT_CATEGORIES: string[] = [
+  'MENS',
+  'UNISEX',
+  'WOMEN',
+  'BESTSELLER',
+  'EAU DE PARFUM',
+  'LUXURY BLEND',
+  'LIMITED EDITION',
+  'SIGNATURE SCENT'
+];
+
+

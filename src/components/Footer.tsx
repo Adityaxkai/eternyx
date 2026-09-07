@@ -46,22 +46,22 @@ const DEFAULT_FOOTER_CONFIG: FooterConfig = {
     {
       title: 'Boutique Story',
       links: [
-        { label: 'The Heritage', url: '/story' },
-        { label: 'Olfactory Scent Journal', url: '/journal' }
+        { label: 'The Heritage', url: '/story' }
       ]
     },
     {
       title: 'Support & Store',
       links: [
-        { label: 'Contact Boutique', url: '/contact' }
+        { label: 'Contact Boutique', url: '/contact' },
+        { label: 'Shipping & Returns', url: '/terms#returns' }
       ]
     }
   ],
   bottomLinks: [
-    { label: 'Privacy Policy', url: '#' },
-    { label: 'Terms of Sale', url: '#' },
-    { label: 'Legal & Regulatory', url: '#' },
-    { label: 'Site Map', url: '#' }
+    { label: 'Privacy Policy', url: '/privacy' },
+    { label: 'Terms and Conditions', url: '/terms' },
+    { label: 'Returns & Refunds', url: '/terms#returns' },
+    { label: 'Shipping Info', url: '/terms#shipping' }
   ]
 };
 
@@ -102,9 +102,26 @@ export default function Footer() {
     ? config.columns 
     : (DEFAULT_FOOTER_CONFIG.columns || []);
 
-  const bottomLinks = (config.bottomLinks && config.bottomLinks.length > 0) 
+  const rawBottomLinks = (config.bottomLinks && config.bottomLinks.length > 0) 
     ? config.bottomLinks 
     : (DEFAULT_FOOTER_CONFIG.bottomLinks || []);
+
+  const bottomLinks = rawBottomLinks.map((link) => {
+    const l = link.label.toLowerCase();
+    if (l.includes('privacy') && (!link.url || link.url === '#')) {
+      return { ...link, url: '/privacy', label: 'Privacy Policy' };
+    }
+    if (l.includes('terms') && (!link.url || link.url === '#')) {
+      return { ...link, url: '/terms', label: 'Terms and Conditions' };
+    }
+    if ((l.includes('refund') || l.includes('return') || l.includes('legal')) && (!link.url || link.url === '#')) {
+      return { ...link, url: '/terms#returns', label: 'Returns & Refunds' };
+    }
+    if (l.includes('shipping') && (!link.url || link.url === '#')) {
+      return { ...link, url: '/terms#shipping', label: 'Shipping Info' };
+    }
+    return link;
+  });
 
   const disclaimer = config.disclaimer !== undefined && config.disclaimer !== '' 
     ? config.disclaimer 

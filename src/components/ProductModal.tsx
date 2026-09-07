@@ -262,20 +262,27 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
   useEffect(() => {
     const detailsEl = detailsColRef.current;
     const imageEl = imageColRef.current;
+    const panelEl = panelRef.current;
     if (!detailsEl || !product) return;
 
     const onWheel = (e: WheelEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      detailsEl.scrollTop += e.deltaY;
+      if (window.innerWidth <= 1024 && panelEl) {
+        panelEl.scrollTop += e.deltaY;
+      } else {
+        detailsEl.scrollTop += e.deltaY;
+      }
     };
 
     detailsEl.addEventListener('wheel', onWheel, { passive: false, capture: true });
     imageEl?.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    panelEl?.addEventListener('wheel', onWheel, { passive: false, capture: true });
 
     return () => {
       detailsEl.removeEventListener('wheel', onWheel, { capture: true });
       imageEl?.removeEventListener('wheel', onWheel, { capture: true });
+      panelEl?.removeEventListener('wheel', onWheel, { capture: true });
     };
   }, [product]);
 
@@ -345,10 +352,11 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                   (richProduct?.image_alt && richProduct.image_alt[allImages.indexOf(activeImage || product.image)]) ||
                   `${product.name} Eau de Parfum by ETERNYX`
                 }
-                width={500}
-                height={600}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.3s ease' }}
+                width={1600}
+                height={2000}
+                style={{ width: '100%', minWidth: '100%', maxWidth: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center bottom', display: 'block', transition: 'opacity 0.3s ease' }}
                 key={activeImage}
+                referrerPolicy="no-referrer"
               />
             ) : (
               <div className="pm-no-image-placeholder">
@@ -374,6 +382,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
                       `${product.name} thumbnail ${idx + 1}`
                     }
                     className="pm-thumbnail-img"
+                    referrerPolicy="no-referrer"
                   />
                 </button>
               ))}

@@ -16,7 +16,9 @@ export async function GET() {
       footerText: settings.footerText || '© 2026 Eternyx. All rights reserved.',
       instagramUrl: settings.instagramUrl || '',
       facebookUrl: settings.facebookUrl || '',
-      twitterUrl: settings.twitterUrl || ''
+      twitterUrl: settings.twitterUrl || '',
+      philosophyConfig: settings.philosophyConfig || null,
+      categories: settings.categories || null
     };
     return Response.json(publicSettings);
   } catch (error) {

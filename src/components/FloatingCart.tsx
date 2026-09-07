@@ -198,7 +198,7 @@ export default function FloatingCart() {
         .floating-cart {
           position: fixed;
           bottom: 40px;
-          left: 40px;
+          right: 40px;
           width: 60px;
           height: 60px;
           border-radius: 50%;
@@ -276,7 +276,7 @@ export default function FloatingCart() {
         @media (max-width: 768px) {
           .floating-cart {
             bottom: 30px;
-            left: 30px;
+            right: 30px;
             width: 54px;
             height: 54px;
           }

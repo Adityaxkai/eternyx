@@ -47,7 +47,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: 'Growth',
       items: [
         { href: '/admin/discounts', label: 'Discounts' },
-        { href: '/admin/journal', label: 'The Journal' },
         { href: '/admin/analytics', label: 'Analytics' }
       ]
     },

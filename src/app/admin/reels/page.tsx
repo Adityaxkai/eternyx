@@ -121,6 +121,7 @@ export default function ReelsPage() {
   const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
     if (!rawFile) return;
+    const inputElement = e.target;
 
     setUploading(true);
     try {
@@ -145,6 +146,7 @@ export default function ReelsPage() {
       console.error(err);
       alert(err.message || 'Upload error.');
     } finally {
+      if (inputElement) inputElement.value = '';
       setUploading(false);
     }
   };
@@ -152,6 +154,7 @@ export default function ReelsPage() {
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const inputElement = e.target;
 
     setUploadingVideo(true);
     try {
@@ -175,6 +178,7 @@ export default function ReelsPage() {
       console.error(err);
       alert(err.message || 'Upload error.');
     } finally {
+      if (inputElement) inputElement.value = '';
       setUploadingVideo(false);
     }
   };

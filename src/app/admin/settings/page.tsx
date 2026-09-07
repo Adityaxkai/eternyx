@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { compressImage } from '@/lib/compressImage';
+import { PhilosophyConfig, DEFAULT_PHILOSOPHY, DEFAULT_CATEGORIES } from '@/lib/types';
 
-type Tab = 'General' | 'Branding' | 'Shipping' | 'Taxes' | 'Notifications' | 'Footer';
+type Tab = 'General' | 'Branding' | 'Categories' | 'About Us' | 'Shipping' | 'Taxes' | 'Notifications' | 'Footer';
 
 interface FooterLink {
   label: string;
@@ -16,6 +18,89 @@ interface FooterColumn {
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>('General');
+
+  // ── Categories ──
+  const [categoriesList, setCategoriesList] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [editingCategoryIndex, setEditingCategoryIndex] = useState<number | null>(null);
+  const [editCategoryValue, setEditCategoryValue] = useState('');
+
+  const handleAddCategory = () => {
+    const trimmed = newCategoryInput.trim().toUpperCase();
+    if (!trimmed) return;
+    if (categoriesList.includes(trimmed)) {
+      alert(`Category "${trimmed}" already exists.`);
+      return;
+    }
+    setCategoriesList([...categoriesList, trimmed]);
+    setNewCategoryInput('');
+  };
+
+  const handleDeleteCategory = (catToDelete: string) => {
+    if (!confirm(`Delete category "${catToDelete}"?`)) return;
+    setCategoriesList(categoriesList.filter(c => c !== catToDelete));
+  };
+
+  const handleStartEditCategory = (index: number) => {
+    setEditingCategoryIndex(index);
+    setEditCategoryValue(categoriesList[index]);
+  };
+
+  const handleSaveEditCategory = (index: number) => {
+    const trimmed = editCategoryValue.trim().toUpperCase();
+    if (!trimmed) return;
+    const updated = [...categoriesList];
+    updated[index] = trimmed;
+    setCategoriesList(updated);
+    setEditingCategoryIndex(null);
+    setEditCategoryValue('');
+  };
+
+  // ── Philosophy ──
+  const [philosophyEyebrow, setPhilosophyEyebrow] = useState(DEFAULT_PHILOSOPHY.eyebrow);
+  const [philosophyHeadline1, setPhilosophyHeadline1] = useState(DEFAULT_PHILOSOPHY.headlinePart1);
+  const [philosophyHeadline2, setPhilosophyHeadline2] = useState(DEFAULT_PHILOSOPHY.headlinePart2);
+  const [philosophyDescription, setPhilosophyDescription] = useState(DEFAULT_PHILOSOPHY.description);
+  const [philosophyButtonText, setPhilosophyButtonText] = useState(DEFAULT_PHILOSOPHY.buttonText);
+  const [philosophyButtonUrl, setPhilosophyButtonUrl] = useState(DEFAULT_PHILOSOPHY.buttonUrl);
+  const [philosophyImageUrl, setPhilosophyImageUrl] = useState(DEFAULT_PHILOSOPHY.imageUrl);
+  const [uploadingPhilosophyImage, setUploadingPhilosophyImage] = useState(false);
+
+  const handlePhilosophyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
+    const inputElement = e.target;
+    setUploadingPhilosophyImage(true);
+    try {
+      const file = await compressImage(rawFile, {
+        maxWidth: 1600,
+        maxHeight: 1200,
+        quality: 0.85,
+        mimeType: 'image/webp',
+      });
+      const res = await fetch(`/api/admin/upload?filename=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': file.type || 'image/webp',
+          'x-filename': file.name,
+        },
+        body: file,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPhilosophyImageUrl(data.url);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to upload image.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Upload error.');
+    } finally {
+      if (inputElement) inputElement.value = '';
+      setUploadingPhilosophyImage(false);
+    }
+  };
 
   // ── Footer ──
   const [footerDisclaimer, setFooterDisclaimer] = useState('');
@@ -170,6 +255,26 @@ export default function SettingsPage() {
           setFacebookUrl(data.facebookUrl || '');
           setTwitterUrl(data.twitterUrl || '');
 
+          // Load Categories
+          if (Array.isArray(data.categories) && data.categories.length > 0) {
+            setCategoriesList(data.categories);
+          } else {
+            fetch('/api/categories')
+              .then(r => r.json())
+              .then(cats => { if (Array.isArray(cats) && cats.length > 0) setCategoriesList(cats); })
+              .catch(() => {});
+          }
+
+          // Load Philosophy settings
+          const phil = data.philosophyConfig || {};
+          setPhilosophyEyebrow(phil.eyebrow || DEFAULT_PHILOSOPHY.eyebrow);
+          setPhilosophyHeadline1(phil.headlinePart1 || DEFAULT_PHILOSOPHY.headlinePart1);
+          setPhilosophyHeadline2(phil.headlinePart2 || DEFAULT_PHILOSOPHY.headlinePart2);
+          setPhilosophyDescription(phil.description || DEFAULT_PHILOSOPHY.description);
+          setPhilosophyButtonText(phil.buttonText || DEFAULT_PHILOSOPHY.buttonText);
+          setPhilosophyButtonUrl(phil.buttonUrl || DEFAULT_PHILOSOPHY.buttonUrl);
+          setPhilosophyImageUrl(phil.imageUrl || DEFAULT_PHILOSOPHY.imageUrl);
+
           // Load Footer settings with fallback defaults
           const fc = data.footerConfig || {};
           
@@ -193,8 +298,7 @@ export default function SettingsPage() {
             {
               title: 'Brand Story',
               links: [
-                { label: 'The Heritage', url: '/story' },
-                { label: 'Olfactory Scent Journal', url: '/journal' }
+                { label: 'The Heritage', url: '/story' }
               ]
             },
             {
@@ -205,10 +309,10 @@ export default function SettingsPage() {
             }
           ];
           const defaultBottom = [
-            { label: 'Privacy Policy', url: '#' },
-            { label: 'Terms of Sale', url: '#' },
-            { label: 'Legal & Regulatory', url: '#' },
-            { label: 'Site Map', url: '#' }
+            { label: 'Privacy Policy', url: '/privacy' },
+            { label: 'Terms and Conditions', url: '/terms' },
+            { label: 'Returns & Refunds', url: '/terms#returns' },
+            { label: 'Shipping Info', url: '/terms#shipping' }
           ];
 
           setFooterDisclaimer(fc.disclaimer || 'ETERNYX fragrances are handcrafted in Grasse, France, using organically-sourced natural materials and pure botanical essences. Spontaneous scent dispersion and natural sediment are hallmarks of artisan quality. Free standard shipping applies to all orders above $250. Individual results and scent endurance may vary depending on ambient humidity and skin temperature.');
@@ -240,6 +344,16 @@ export default function SettingsPage() {
         body: JSON.stringify({
           storeName, email, phone, currency, maintenance,
           primaryColor, tagline, footerText: footerCopyright,
+          categories: categoriesList,
+          philosophyConfig: {
+            eyebrow: philosophyEyebrow,
+            headlinePart1: philosophyHeadline1,
+            headlinePart2: philosophyHeadline2,
+            description: philosophyDescription,
+            buttonText: philosophyButtonText,
+            buttonUrl: philosophyButtonUrl,
+            imageUrl: philosophyImageUrl,
+          },
           footerConfig: {
             disclaimer: footerDisclaimer,
             copyright: footerCopyright,
@@ -265,7 +379,7 @@ export default function SettingsPage() {
     }
   };
 
-  const TABS: Tab[] = ['General', 'Branding', 'Shipping', 'Taxes', 'Notifications', 'Footer'];
+  const TABS: Tab[] = ['General', 'Branding', 'Categories', 'About Us', 'Shipping', 'Taxes', 'Notifications', 'Footer'];
 
   return (
     <div className="settings-container">
@@ -379,6 +493,244 @@ export default function SettingsPage() {
                   <div className="form-group">
                     <label htmlFor="set-footer">Footer Text</label>
                     <input id="set-footer" type="text" value={footerText} onChange={e => setFooterText(e.target.value)} placeholder="© 2025 Eternyx. All rights reserved." />
+                  </div>
+                </section>
+              </>
+            )}
+
+            {/* ── CATEGORIES ── */}
+            {tab === 'Categories' && (
+              <>
+                <section className="settings-card">
+                  <h2>Product Categories</h2>
+                  <p className="section-desc">
+                    Manage the categories used to organize your perfumes and collections across the storefront and admin panel.
+                  </p>
+                  
+                  {/* Add New Category Bar */}
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '28px', marginTop: '16px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="NEW CATEGORY NAME (e.g. OUD COLLECTION)" 
+                      value={newCategoryInput} 
+                      onChange={e => setNewCategoryInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }}
+                      style={{ flex: 1, textTransform: 'uppercase' }}
+                    />
+                    <button 
+                      type="button"
+                      className="admin-btn-primary" 
+                      onClick={handleAddCategory}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      + Add Category
+                    </button>
+                  </div>
+
+                  {/* Categories Cards Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '14px' }}>
+                    {categoriesList.map((cat, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '8px',
+                          padding: '14px 18px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          transition: 'border-color 0.2s',
+                        }}
+                      >
+                        {editingCategoryIndex === idx ? (
+                          <div style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center' }}>
+                            <input 
+                              type="text"
+                              value={editCategoryValue}
+                              onChange={e => setEditCategoryValue(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleSaveEditCategory(idx); }}
+                              autoFocus
+                              style={{ flex: 1, padding: '6px 10px', fontSize: '0.85rem', textTransform: 'uppercase' }}
+                            />
+                            <button 
+                              type="button"
+                              onClick={() => handleSaveEditCategory(idx)}
+                              style={{ background: '#d4af37', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                            >
+                              Save
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => setEditingCategoryIndex(null)}
+                              style={{ background: 'transparent', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.2)', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#d4af37' }} />
+                              <span style={{ fontWeight: 500, fontSize: '0.85rem', letterSpacing: '0.06em', color: '#ffffff' }}>
+                                {cat}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button 
+                                type="button"
+                                onClick={() => handleStartEditCategory(idx)}
+                                title="Rename Category"
+                                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                              >
+                                ✎
+                              </button>
+                              <button 
+                                type="button"
+                                onClick={() => handleDeleteCategory(cat)}
+                                title="Delete Category"
+                                style={{ background: 'rgba(255,50,50,0.1)', color: '#ff6b6b', border: '1px solid rgba(255,50,50,0.2)', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="field-hint" style={{ marginTop: '20px' }}>
+                    Click <strong>&quot;Save Changes&quot;</strong> in the top header to save your updated category list.
+                  </p>
+                </section>
+              </>
+            )}
+
+            {/* ── ABOUT US ── */}
+            {tab === 'About Us' && (
+              <>
+                <section className="settings-card">
+                  <h2>Homepage About Us / Brand Statement</h2>
+                  <p className="section-desc">Customise the &quot;Silence is Luxury&quot; brand statement and about us section on the homepage.</p>
+                  
+                  <div className="form-group">
+                    <label htmlFor="set-phil-eyebrow">Section Eyebrow / Tag</label>
+                    <input 
+                      id="set-phil-eyebrow" 
+                      type="text" 
+                      value={philosophyEyebrow} 
+                      onChange={e => setPhilosophyEyebrow(e.target.value)} 
+                      placeholder="About Us" 
+                    />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="set-phil-head1">Headline (Line 1)</label>
+                      <input 
+                        id="set-phil-head1" 
+                        type="text" 
+                        value={philosophyHeadline1} 
+                        onChange={e => setPhilosophyHeadline1(e.target.value)} 
+                        placeholder="Silence" 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="set-phil-head2">Headline (Line 2)</label>
+                      <input 
+                        id="set-phil-head2" 
+                        type="text" 
+                        value={philosophyHeadline2} 
+                        onChange={e => setPhilosophyHeadline2(e.target.value)} 
+                        placeholder="Is Luxury." 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="set-phil-desc">Body Description</label>
+                    <textarea 
+                      id="set-phil-desc" 
+                      rows={4} 
+                      value={philosophyDescription} 
+                      onChange={e => setPhilosophyDescription(e.target.value)} 
+                      placeholder="We reject the noise of conventional fragrance..." 
+                      style={{
+                        width: '100%',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '6px',
+                        color: '#fff',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        lineHeight: '1.6',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="set-phil-btn-text">Button Text</label>
+                      <input 
+                        id="set-phil-btn-text" 
+                        type="text" 
+                        value={philosophyButtonText} 
+                        onChange={e => setPhilosophyButtonText(e.target.value)} 
+                        placeholder="About Us" 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="set-phil-btn-url">Button Link</label>
+                      <input 
+                        id="set-phil-btn-url" 
+                        type="text" 
+                        value={philosophyButtonUrl} 
+                        onChange={e => setPhilosophyButtonUrl(e.target.value)} 
+                        placeholder="/story" 
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="settings-card">
+                  <h2>Section Imagery</h2>
+                  <p className="section-desc">The featured perfume photography shown on the right side.</p>
+                  
+                  {philosophyImageUrl && (
+                    <div style={{ marginBottom: '16px', maxWidth: '360px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <img 
+                        src={philosophyImageUrl} 
+                        alt="Brand Philosophy Preview" 
+                        referrerPolicy="no-referrer"
+                        style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }} 
+                      />
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label>Upload New Image</label>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handlePhilosophyImageUpload} 
+                      disabled={uploadingPhilosophyImage}
+                      style={{ color: 'rgba(255,255,255,0.6)' }}
+                    />
+                    {uploadingPhilosophyImage && <p className="field-hint" style={{ color: '#d4af37' }}>Uploading image to Google Drive…</p>}
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="set-phil-img-url">Or Direct Image URL</label>
+                    <input 
+                      id="set-phil-img-url" 
+                      type="text" 
+                      value={philosophyImageUrl} 
+                      onChange={e => setPhilosophyImageUrl(e.target.value)} 
+                      placeholder="/images/brand-statement.png" 
+                    />
                   </div>
                 </section>
               </>

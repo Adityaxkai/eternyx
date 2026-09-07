@@ -6,6 +6,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import ProductModal, { Product } from '@/components/ProductModal';
 import { useCart } from '@/context/CartContext';
+import { PhilosophyConfig, DEFAULT_PHILOSOPHY } from '@/lib/types';
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -43,9 +44,10 @@ function CharacterReveal({ text, className = '' }: { text: string; className?: s
 function ReelCard({ reel }: { reel: any }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [useFallbackImage, setUseFallbackImage] = useState(false);
 
-  // Helper to determine if the video is a direct play video link (like an .mp4)
+  // Helper to determine if the video is a direct play video link (like an .mp4 or /api/video/)
   const isDirectVideo = (url: string) => {
     if (!url || url === '#') return false;
     if (url.includes('instagram.com') || url.includes('facebook.com') || url.includes('tiktok.com') || url.includes('youtube.com') || url.includes('youtu.be')) return false;
@@ -54,35 +56,46 @@ function ReelCard({ reel }: { reel: any }) {
 
   const hasDirectVideo = isDirectVideo(reel.video);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-    if (hasDirectVideo && videoRef.current && !useFallbackImage) {
-      videoRef.current.muted = true;
-      const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          if (err.name !== 'AbortError') {
-            console.warn("Video hover playback failed:", err);
+  useEffect(() => {
+    if (!videoRef.current || !hasDirectVideo || useFallbackImage) return;
+    const videoEl = videoRef.current;
+    videoEl.muted = true;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            videoEl.play().then(() => setIsPlaying(true)).catch(() => {});
+          } else {
+            videoEl.pause();
+            setIsPlaying(false);
           }
         });
-      }
-    }
-  };
+      },
+      { threshold: 0.25 }
+    );
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (hasDirectVideo && videoRef.current) {
+    observer.observe(videoEl);
+    return () => observer.disconnect();
+  }, [hasDirectVideo, useFallbackImage]);
+
+  const togglePlay = () => {
+    if (!videoRef.current || !hasDirectVideo) return;
+    if (videoRef.current.paused) {
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else {
       videoRef.current.pause();
-      videoRef.current.currentTime = 0;
+      setIsPlaying(false);
     }
   };
 
   return (
     <div 
       className="reel-card"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      style={{ display: 'block', position: 'relative', cursor: 'default' }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={togglePlay}
+      style={{ display: 'block', position: 'relative', cursor: 'pointer' }}
     >
       <div className="reel-thumb">
         {hasDirectVideo && !useFallbackImage ? (
@@ -92,7 +105,7 @@ function ReelCard({ reel }: { reel: any }) {
             loop
             muted
             playsInline
-            preload="auto"
+            preload="metadata"
             onError={() => setUseFallbackImage(true)}
             style={{
               width: '100%',
@@ -165,9 +178,9 @@ function ReelCard({ reel }: { reel: any }) {
           <div 
             className="reel-play" 
             style={{ 
-              opacity: isHovered ? (hasDirectVideo ? 0 : 1) : 0,
-              transform: isHovered ? 'scale(1)' : 'scale(0.8)', 
-              transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+              opacity: isPlaying ? 0 : 0.85,
+              transform: isPlaying ? 'scale(0.8)' : 'scale(1)', 
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
               alignSelf: 'center',
               marginTop: 'auto',
               marginBottom: 'auto'
@@ -198,9 +211,10 @@ export interface HomeClientProps {
   initialBanners?: { image_url: string; mobile_image_url: string }[];
   initialProducts?: Product[];
   initialReels?: { handle: string; likes: string; product: string; image: string; video?: string }[];
+  initialPhilosophy?: PhilosophyConfig;
 }
 
-export default function HomeClient({ initialBanners, initialProducts, initialReels }: HomeClientProps) {
+export default function HomeClient({ initialBanners, initialProducts, initialReels, initialPhilosophy }: HomeClientProps) {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState('');
@@ -236,6 +250,9 @@ export default function HomeClient({ initialBanners, initialProducts, initialRee
   );
   const [reels, setReels] = useState<{ handle: string; likes: string; product: string; image: string; video?: string }[]>(
     initialReels || []
+  );
+  const [philosophy, setPhilosophy] = useState<PhilosophyConfig>(
+    initialPhilosophy || DEFAULT_PHILOSOPHY
   );
   const [isMobile, setIsMobile] = useState(false);
 
@@ -856,6 +873,11 @@ export default function HomeClient({ initialBanners, initialProducts, initialRee
                   style={{ objectFit: 'cover' }}
                   quality={100}
                   priority={index === 0}
+                  referrerPolicy="no-referrer"
+                  unoptimized={
+                    (banner.image_url?.includes('drive.google.com') || banner.image_url?.includes('googleusercontent.com')) ||
+                    (banner.mobile_image_url?.includes('drive.google.com') || banner.mobile_image_url?.includes('googleusercontent.com'))
+                  }
                 />
               </div>
             ))}
@@ -930,6 +952,8 @@ export default function HomeClient({ initialBanners, initialProducts, initialRee
                         width={280}
                         height={320}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        referrerPolicy="no-referrer"
+                        unoptimized={product.image?.includes('drive.google.com') || product.image?.includes('googleusercontent.com')}
                       />
                     ) : (
                       <div className="product-card-placeholder">
@@ -974,20 +998,20 @@ export default function HomeClient({ initialBanners, initialProducts, initialRee
         {/* Brand Statement Section */}
         <section className="brand-statement">
           <div className="brand-statement-left">
-            <p className="brand-statement-eyebrow scroll-fade-item">Our Philosophy</p>
+            <p className="brand-statement-eyebrow scroll-fade-item">{philosophy.eyebrow || 'Our Philosophy'}</p>
             <h2 className="brand-statement-headline scroll-reveal-text">
               <span className="text-reveal-mask" style={{ display: 'block' }}>
-                <span className="text-reveal-word text-reveal-trigger-item">Silence</span>
+                <span className="text-reveal-word text-reveal-trigger-item">{philosophy.headlinePart1 || 'Silence'}</span>
               </span>
               <span className="text-reveal-mask" style={{ display: 'block' }}>
-                <span className="text-reveal-word text-reveal-trigger-item">Is Luxury.</span>
+                <span className="text-reveal-word text-reveal-trigger-item">{philosophy.headlinePart2 || 'Is Luxury.'}</span>
               </span>
             </h2>
             <p className="brand-statement-body scroll-fade-item">
-              We reject the noise of conventional fragrance. ETERNYX engineers scents that speak without words — complex, enduring, and impossibly refined. A sanctuary for those who know.
+              {philosophy.description}
             </p>
-            <a href="#" className="brand-statement-cta scroll-fade-item">
-              About Us
+            <a href={philosophy.buttonUrl || '/story'} className="brand-statement-cta scroll-fade-item">
+              {philosophy.buttonText || 'About Us'}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
               </svg>
@@ -995,11 +1019,13 @@ export default function HomeClient({ initialBanners, initialProducts, initialRee
           </div>
           <div className="brand-statement-right">
             <Image
-              src="/images/brand-statement.png"
+              src={philosophy.imageUrl || '/images/brand-statement.png'}
               alt="ETERNYX Luxury Perfumes"
               width={800}
               height={600}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              referrerPolicy="no-referrer"
+              unoptimized={Boolean(philosophy.imageUrl?.includes('drive.google.com') || philosophy.imageUrl?.includes('googleusercontent.com'))}
             />
           </div>
         </section>
@@ -1055,6 +1081,8 @@ export default function HomeClient({ initialBanners, initialProducts, initialRee
                             width={320}
                             height={360}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            referrerPolicy="no-referrer"
+                            unoptimized={Boolean(product.image?.includes('drive.google.com') || product.image?.includes('googleusercontent.com'))}
                           />
                         ) : (
                           <div className="product-card-placeholder">

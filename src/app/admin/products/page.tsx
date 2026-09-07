@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Product } from '@/lib/types';
+import { Product, DEFAULT_CATEGORIES } from '@/lib/types';
 import Image from 'next/image';
 import { compressImage } from '@/lib/compressImage';
 
@@ -28,10 +28,26 @@ export default function ProductsPage() {
 
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categories');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setCategories(data);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories', error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -117,7 +133,7 @@ export default function ProductsPage() {
       setFormName('');
       setFormDescription('');
       setFormPrice(180);
-      setFormCategory('MENS');
+      setFormCategory(categories[0] || 'MENS');
       setFormVolume('100 ml');
       setFormImageUrl('');
       setFormAdditionalImages([]);
@@ -130,6 +146,7 @@ export default function ProductsPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = e.target.files?.[0];
     if (!rawFile) return;
+    const inputElement = e.target;
 
     setUploading(true);
     try {
@@ -154,6 +171,7 @@ export default function ProductsPage() {
       console.error(err);
       alert(err.message || 'Upload error.');
     } finally {
+      if (inputElement) inputElement.value = '';
       setUploading(false);
     }
   };
@@ -161,6 +179,7 @@ export default function ProductsPage() {
   const handleAdditionalImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    const inputElement = e.target;
 
     setUploading(true);
     try {
@@ -184,6 +203,7 @@ export default function ProductsPage() {
       console.error(err);
       alert(err.message || 'Upload error.');
     } finally {
+      if (inputElement) inputElement.value = '';
       setUploading(false);
     }
   };
@@ -355,14 +375,16 @@ export default function ProductsPage() {
                   onChange={(e) => setFormCategory(e.target.value)} 
                   required
                 >
-                  <option value="MENS" style={{ background: '#0d0d0d', color: '#fff' }}>MENS</option>
-                  <option value="UNISEX" style={{ background: '#0d0d0d', color: '#fff' }}>UNISEX</option>
-                  <option value="WOMEN" style={{ background: '#0d0d0d', color: '#fff' }}>WOMEN</option>
-                  <option value="BESTSELLER" style={{ background: '#0d0d0d', color: '#fff' }}>BESTSELLER</option>
-                  <option value="EAU DE PARFUM" style={{ background: '#0d0d0d', color: '#fff' }}>EAU DE PARFUM</option>
-                  <option value="LUXURY BLEND" style={{ background: '#0d0d0d', color: '#fff' }}>LUXURY BLEND</option>
-                  <option value="LIMITED EDITION" style={{ background: '#0d0d0d', color: '#fff' }}>LIMITED EDITION</option>
-                  <option value="SIGNATURE SCENT" style={{ background: '#0d0d0d', color: '#fff' }}>SIGNATURE SCENT</option>
+                  {formCategory && !categories.includes(formCategory) && (
+                    <option value={formCategory} style={{ background: '#0d0d0d', color: '#fff' }}>
+                      {formCategory}
+                    </option>
+                  )}
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat} style={{ background: '#0d0d0d', color: '#fff' }}>
+                      {cat}
+                    </option>
+                  ))}
                 </select>
               </div>
 

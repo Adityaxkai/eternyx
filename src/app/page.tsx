@@ -2,14 +2,17 @@ import HomeClient from '@/components/HomeClient';
 import { bannerService } from '@/services/bannerService';
 import { productService } from '@/services/productService';
 import { reelService } from '@/services/reelService';
+import { settingsService } from '@/services/settingsService';
+import { PhilosophyConfig, DEFAULT_PHILOSOPHY } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const [banners, products, reels] = await Promise.all([
+  const [banners, products, reels, philosophyConfig] = await Promise.all([
     bannerService.getAll().catch(() => []),
     productService.getAll().catch(() => []),
     reelService.getAll().catch(() => []),
+    settingsService.get<PhilosophyConfig>('philosophyConfig', DEFAULT_PHILOSOPHY),
   ]);
 
   const activeBanners = banners
@@ -45,6 +48,7 @@ export default async function HomePage() {
       initialBanners={activeBanners.length > 0 ? activeBanners : undefined}
       initialProducts={visibleProducts.length > 0 ? visibleProducts : undefined}
       initialReels={activeReels}
+      initialPhilosophy={philosophyConfig}
     />
   );
 }
