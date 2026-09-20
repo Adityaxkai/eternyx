@@ -84,6 +84,8 @@ export interface Order {
   razorpay_signature?: string | null;
   shipping_carrier?: string | null;
   shipping_tracking_id?: string | null;
+  tracking_id?: string | null;
+  carrier?: string | null;
   shipping_label_url?: string | null;
   shipping_cost?: number | null;
   created_at?: string;

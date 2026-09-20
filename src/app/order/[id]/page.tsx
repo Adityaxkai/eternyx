@@ -102,7 +102,7 @@ export default async function OrderDetailPage({ params }: Props) {
           <div className="header-meta">
             <span className="order-tag">Order Confirmation & Dispatch</span>
             <h1>Order #{order.id}</h1>
-            <p className="order-timestamp">Placed on {order.date || new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+            <p className="order-timestamp">Placed on {order.date || (order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently')}</p>
           </div>
           <div className="header-badges">
             <span className={`status-pill ${order.status?.toLowerCase()}`}>
