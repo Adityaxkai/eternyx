@@ -6,7 +6,7 @@ function getSlug(name: string): string {
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://eternyx.com';
+  const baseUrl = 'https://eternyxfragrance.com';
   const currentDate = new Date();
 
   // Static site routes
