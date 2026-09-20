@@ -116,4 +116,38 @@ export const adminAuthService = {
       return { success: false, error: err.message || 'Failed to reset password' };
     }
   },
+
+  // Reset password directly after email OTP verification
+  resetPasswordWithVerifiedEmail: async (
+    email: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const profile = await adminAuthService.getProfile();
+      const cleanEmail = (email || '').trim().toLowerCase();
+
+      if (cleanEmail !== profile.email.toLowerCase()) {
+        return {
+          success: false,
+          error: 'Email address does not match admin records.',
+        };
+      }
+
+      if (!newPassword || newPassword.length < 6) {
+        return { success: false, error: 'New password must be at least 6 characters.' };
+      }
+
+      const updatedProfile: AdminProfile = {
+        ...profile,
+        passwordHash: newPassword.trim(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await settingsService.set('admin_profile', updatedProfile);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Reset password with email error:', err);
+      return { success: false, error: err.message || 'Failed to update password' };
+    }
+  },
 };
