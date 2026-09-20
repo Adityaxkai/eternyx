@@ -4,14 +4,21 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const orders = await query<any[]>('SELECT * FROM orders');
-    const customers = await query<any[]>('SELECT * FROM customers');
-    const products = await query<any[]>('SELECT * FROM products');
+    const [orders, customers, products, orderItems] = await Promise.all([
+      query<any[]>('SELECT total, status, payment_status, created_at FROM orders'),
+      query<any[]>('SELECT id FROM customers'),
+      query<any[]>('SELECT id FROM products'),
+      query<any[]>('SELECT name, quantity FROM order_items')
+    ]);
 
-    const deliveredOrders = orders.filter((o) => o.status.toLowerCase() !== 'cancelled');
-    const totalRevenue = deliveredOrders.reduce((s, o) => s + Number(o.total), 0);
-    const totalOrders = orders.length;
-    const avgOrderValue = deliveredOrders.length ? totalRevenue / deliveredOrders.length : 0;
+    // Only count orders that are PAID or CONFIRMED in revenue and total orders
+    const paidOrders = orders.filter((o) => 
+      o.payment_status?.toLowerCase() === 'paid' || 
+      ['processing', 'shipped', 'delivered'].includes(o.status?.toLowerCase())
+    );
+    const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.total), 0);
+    const totalOrders = paidOrders.length;
+    const avgOrderValue = paidOrders.length ? totalRevenue / paidOrders.length : 0;
 
     // Revenue by day (last 30 days)
     const now = new Date();
@@ -22,7 +29,7 @@ export async function GET() {
       revenueByDay[d.toISOString().slice(0, 10)] = 0;
     }
 
-    deliveredOrders.forEach((o) => {
+    paidOrders.forEach((o) => {
       if (o.created_at) {
         const day = o.created_at.slice(0, 10);
         if (day in revenueByDay) revenueByDay[day] += Number(o.total);
@@ -31,8 +38,7 @@ export async function GET() {
 
     const revenueChart = Object.entries(revenueByDay).map(([date, value]) => ({ date, value }));
 
-    // Fetch order items to calculate top products
-    const orderItems = await query<any[]>('SELECT * FROM order_items');
+    // Calculate top products from fetched order items
     const productCounts: Record<string, number> = {};
     orderItems.forEach((item) => {
       productCounts[item.name] = (productCounts[item.name] || 0) + item.quantity;

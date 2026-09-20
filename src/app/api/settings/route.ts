@@ -9,7 +9,7 @@ export async function GET() {
       storeName: settings.storeName || 'Eternyx Luxury Fragrances',
       email: settings.email || 'support@eternyx.com',
       phone: settings.phone || '+1 (555) 123-4567',
-      currency: settings.currency || 'USD',
+      currency: settings.currency || 'INR',
       primaryColor: settings.primaryColor || '#d4af37',
       tagline: settings.tagline || 'The Art of Invisible Luxury',
       footerConfig: settings.footerConfig || null,

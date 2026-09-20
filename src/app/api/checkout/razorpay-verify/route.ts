@@ -1,6 +1,7 @@
 import { orderService } from '@/services/orderService';
 import { customerService } from '@/services/customerService';
 import { discountService } from '@/services/discountService';
+import { inventoryService } from '@/services/inventoryService';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +58,11 @@ export async function POST(request: Request) {
     // B. Record discount coupon usage
     if (order.discount_code) {
       await discountService.incrementUsage(order.discount_code);
+    }
+
+    // C. Automatically decrement inventory for purchased scent sizes
+    if (Array.isArray(order.items) && order.items.length > 0) {
+      await inventoryService.deductStock(order.items);
     }
 
     return Response.json({ success: true, order_id: order.id });

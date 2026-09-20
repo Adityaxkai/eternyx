@@ -50,70 +50,70 @@ const RECOMMENDATION_MAP: Record<string, {
   'DARK REVENGE': {
     name: 'DARK REVENGE',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-dark-revenge.png',
     description: 'Seductive & rich. Fiery cardamom, sweet toffee accord, and deep amberwood.'
   },
   'CANDY': {
     name: 'CANDY',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-candy.png',
     description: 'Irresistible sweetness. Warm vanilla, rich coffee, and delicate white jasmine.'
   },
   'AZURA': {
     name: 'AZURA',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-azura.png',
     description: 'Aquatic freedom. Fresh apple, crisp bergamot, aquatic accords, and sensual musk.'
   },
   'MEMORABLE': {
     name: 'MEMORABLE',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-memorable.png',
     description: 'Unforgettable presence. Airy saffron, warm golden amber, and cedarwood.'
   },
   'CHERRY BLOW': {
     name: 'CHERRY BLOW',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-cherry-blow.png',
     description: 'Feminine luxury. Sweet almond, rich coffee, tuberose, and vanilla absolute.'
   },
   'SOVARE': {
     name: 'SOVARE',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-sovare.png',
     description: 'Charismatic power. Blood mandarin, zesty grapefruit, rose, and warm leather.'
   },
   'DREAM DROP LET': {
     name: 'DREAM DROP LET',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-dream-drop-let.png',
     description: 'Quiet confidence. Bergamot, lavender, ambroxan, and cedarwood.'
   },
   'DARK THINKER': {
     name: 'DARK THINKER',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-dark-thinker.png',
     description: 'Quiet intellect. Fresh bergamot, green notes, cedarwood, and warm spices.'
   },
   'AFTER MEET': {
     name: 'AFTER MEET',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-after-meet.png',
     description: 'Distinctive presence. Aromatic lavender, fresh orange blossom, lemon, and teakwood.'
   },
   'MY STORA': {
     name: 'MY STORA',
     category: 'Eau de Parfum',
-    price: '$599.00',
+    price: '₹599.00',
     image: '/images/product-my-stora.png',
     description: 'Life in motion. Apple, grapefruit, violet leaf, and golden amber.'
   }

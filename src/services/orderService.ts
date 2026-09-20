@@ -17,28 +17,41 @@ export const orderService = {
       sql += ' ORDER BY o.created_at DESC';
 
       const orders = await query<any[]>(sql, params);
+      if (orders.length === 0) return [];
       
-      // Fetch items for each order
-      const ordersWithItems = await Promise.all(
-        orders.map(async (o) => {
-          const items = await query<OrderItem[]>('SELECT * FROM order_items WHERE order_id = ?', [o.id]);
-          return {
-            ...o,
-            customer: {
-              id: o.customer_id || '',
-              name: o.customer_name || '',
-              email: o.customer_email || '',
-              phone: o.customer_phone || '',
-              spent: 0, // Mock/derived fields
-              orders: 0,
-              lastActive: '',
-            },
-            shipping_address: typeof o.shipping_address === 'string' ? JSON.parse(o.shipping_address) : o.shipping_address,
-            items,
-            items_count: items.reduce((acc, curr) => acc + curr.quantity, 0),
-          };
-        })
+      // Fetch all items for all orders in a SINGLE batched query (fixes N+1 database bottleneck)
+      const orderIds = orders.map((o) => o.id);
+      const placeholders = orderIds.map(() => '?').join(',');
+      const allItems = await query<any[]>(
+        `SELECT * FROM order_items WHERE order_id IN (${placeholders})`,
+        orderIds
       );
+
+      const itemsByOrderId = new Map<string, OrderItem[]>();
+      for (const item of allItems) {
+        const list = itemsByOrderId.get(item.order_id) || [];
+        list.push(item);
+        itemsByOrderId.set(item.order_id, list);
+      }
+
+      const ordersWithItems = orders.map((o) => {
+        const items = itemsByOrderId.get(o.id) || [];
+        return {
+          ...o,
+          customer: {
+            id: o.customer_id || '',
+            name: o.customer_name || '',
+            email: o.customer_email || '',
+            phone: o.customer_phone || '',
+            spent: 0,
+            orders: 0,
+            lastActive: '',
+          },
+          shipping_address: typeof o.shipping_address === 'string' ? JSON.parse(o.shipping_address) : o.shipping_address,
+          items,
+          items_count: items.reduce((acc: number, curr: any) => acc + (curr.quantity || 0), 0),
+        };
+      });
       
       return ordersWithItems;
     } catch (e) {
@@ -119,22 +132,27 @@ export const orderService = {
         ]
       );
 
-      if (Array.isArray(o.items)) {
-        for (const item of o.items) {
-          await query(
-            `INSERT INTO order_items (order_id, product_id, name, size, price, quantity, image)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [
-              o.id,
-              null, // product_id optional
-              item.name,
-              item.size || '',
-              item.price,
-              item.quantity || 1,
-              item.image || ''
-            ]
+      // Fast single multi-row batch insert for all order items
+      if (Array.isArray(o.items) && o.items.length > 0) {
+        const itemValues: any[] = [];
+        const placeholders = o.items.map((item) => {
+          itemValues.push(
+            o.id,
+            null,
+            item.name,
+            item.size || '',
+            item.price,
+            item.quantity || 1,
+            item.image || ''
           );
-        }
+          return '(?, ?, ?, ?, ?, ?, ?)';
+        }).join(', ');
+
+        await query(
+          `INSERT INTO order_items (order_id, product_id, name, size, price, quantity, image)
+           VALUES ${placeholders}`,
+          itemValues
+        );
       }
 
       return await orderService.getById(o.id);

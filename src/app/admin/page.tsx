@@ -47,8 +47,12 @@ export default function AdminDashboard() {
     const loadDashboardData = async () => {
       setLoading(true);
       try {
-        // 1. Fetch store statistics from analytics API
-        const statsRes = await fetch('/api/admin/analytics');
+        const [statsRes, ordersRes, productsRes] = await Promise.all([
+          fetch('/api/admin/analytics'),
+          fetch('/api/admin/orders'),
+          fetch('/api/admin/products'),
+        ]);
+
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats({
@@ -59,20 +63,20 @@ export default function AdminDashboard() {
           });
         }
 
-        // 2. Fetch orders and slice recent 5
-        const ordersRes = await fetch('/api/admin/orders');
         if (ordersRes.ok) {
           const ordersData = await ordersRes.json();
           if (Array.isArray(ordersData)) {
-            const sorted = ordersData
-              .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+            const confirmedOrders = ordersData.filter((o: any) => 
+              o.payment_status?.toLowerCase() === 'paid' || 
+              ['processing', 'shipped', 'delivered'].includes(o.status?.toLowerCase())
+            );
+            const sorted = confirmedOrders
+              .sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
               .slice(0, 5);
             setRecentOrders(sorted);
           }
         }
 
-        // 3. Fetch products and filter stock levels <= 5
-        const productsRes = await fetch('/api/admin/products');
         if (productsRes.ok) {
           const productsData = await productsRes.json();
           if (Array.isArray(productsData)) {
@@ -103,10 +107,53 @@ export default function AdminDashboard() {
     loadDashboardData();
   }, []);
 
+  const [resettingDemo, setResettingDemo] = useState(false);
+
+  const handleResetDemo = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to reset all demo data?\n\nThis will permanently delete mock orders, customers, bookings, inquiries, and reviews, resetting your revenue and order counts cleanly to 0.'
+    );
+    if (!confirmed) return;
+
+    setResettingDemo(true);
+    try {
+      const res = await fetch('/api/admin/reset-demo', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        alert('✓ All demo data has been cleared successfully.');
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed to reset demo data');
+      }
+    } catch (e) {
+      console.error('Reset error:', e);
+      alert('Network error while resetting demo data');
+    } finally {
+      setResettingDemo(false);
+    }
+  };
+
   return (
     <div>
       <div className="admin-page-header">
         <h1 className="admin-page-title">Dashboard Overview</h1>
+        <button
+          onClick={handleResetDemo}
+          disabled={resettingDemo}
+          style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            color: '#f87171',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            padding: '8px 16px',
+            fontSize: '0.8rem',
+            letterSpacing: '0.05em',
+            borderRadius: '4px',
+            cursor: resettingDemo ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+          }}
+        >
+          {resettingDemo ? 'RESETTING...' : 'RESET DEMO DATA'}
+        </button>
       </div>
 
       {loading ? (

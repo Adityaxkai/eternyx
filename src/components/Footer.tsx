@@ -24,7 +24,7 @@ interface FooterConfig {
 }
 
 const DEFAULT_FOOTER_CONFIG: FooterConfig = {
-  disclaimer: 'ETERNYX fragrances are handcrafted in Grasse, France, using organically-sourced natural materials and pure botanical essences. Spontaneous scent dispersion and natural sediment are hallmarks of artisan quality. Free standard shipping applies to all orders above $250. Individual results and scent endurance may vary depending on ambient humidity and skin temperature.',
+  disclaimer: 'ETERNYX fragrances are handcrafted in Grasse, France, using organically-sourced natural materials and pure botanical essences. Spontaneous scent dispersion and natural sediment are hallmarks of artisan quality. Free standard shipping applies to all orders above ₹999. Individual results and scent endurance may vary depending on ambient humidity and skin temperature.',
   copyright: '© 2026 ETERNYX Luxury. All rights reserved.',
   columns: [
     {
@@ -52,6 +52,7 @@ const DEFAULT_FOOTER_CONFIG: FooterConfig = {
     {
       title: 'Support & Store',
       links: [
+        { label: 'Track Order', url: '/track' },
         { label: 'Contact Boutique', url: '/contact' },
         { label: 'Shipping & Returns', url: '/terms#returns' }
       ]

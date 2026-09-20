@@ -1,0 +1,529 @@
+'use client';
+
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+
+interface TrackingCheckpoint {
+  time: string;
+  location: string;
+  description: string;
+}
+
+interface TrackingData {
+  trackingId: string;
+  carrier: string;
+  order?: {
+    orderId: string;
+    date: string;
+    status: string;
+    carrier: string;
+    destinationCity: string;
+    destinationZip: string;
+    itemsCount: number;
+  };
+  tracking: {
+    status: string;
+    tracking_id: string;
+    checkpoints: TrackingCheckpoint[];
+  };
+}
+
+function TrackContent() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('query') || searchParams.get('tracking_id') || searchParams.get('order_id') || '';
+
+  const [query, setQuery] = useState(initialQuery);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [data, setData] = useState<TrackingData | null>(null);
+
+  useEffect(() => {
+    if (initialQuery) {
+      handleTrack(initialQuery);
+    }
+  }, [initialQuery]);
+
+  const handleTrack = async (searchQuery: string) => {
+    const q = searchQuery.trim();
+    if (!q) return;
+
+    setLoading(true);
+    setError('');
+    setData(null);
+
+    try {
+      const res = await fetch(`/api/track?query=${encodeURIComponent(q)}`);
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        setData(result);
+      } else {
+        setError(result.error || 'No tracking record found for this tracking number or order.');
+      }
+    } catch (err) {
+      console.error('Tracking fetch error:', err);
+      setError('Unable to fetch live tracking at this time. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleTrack(query);
+  };
+
+  return (
+    <div className="track-page-container">
+      <div className="track-card">
+        <div className="track-header">
+          <span className="eyebrow">iCarry Logistics Fulfillment</span>
+          <h1>Live Parcel Tracking</h1>
+          <p className="subtitle">
+            Enter your AWB Airway Bill tracking number or Order ID to inspect real-time dispatch progress.
+          </p>
+        </div>
+
+        {/* Search form */}
+        <form onSubmit={onSubmit} className="track-form">
+          <div className="input-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="e.g. AWB-101-123456 or ORD-A1B2C3D4"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" disabled={loading || !query.trim()} className="track-btn">
+            {loading ? 'LOOKING UP…' : 'TRACK PARCEL'}
+          </button>
+        </form>
+
+        {error && <div className="track-error">{error}</div>}
+
+        {/* Results view */}
+        {data && (
+          <div className="track-result-section">
+            {/* Status Banner */}
+            <div className="status-banner">
+              <div className="status-badge">
+                <span className="live-dot" />
+                <span className="status-text">{data.tracking?.status || 'In Transit'}</span>
+              </div>
+              <div className="meta-pair">
+                <span className="meta-label">Airway Bill (AWB)</span>
+                <span className="meta-val font-mono">{data.trackingId}</span>
+              </div>
+              <div className="meta-pair">
+                <span className="meta-label">Courier Carrier</span>
+                <span className="meta-val">{data.carrier}</span>
+              </div>
+            </div>
+
+            {/* Order info if found */}
+            {data.order && (
+              <div className="order-summary-chip">
+                <div className="chip-col">
+                  <span className="chip-label">Order Reference</span>
+                  <span className="chip-val">{data.order.orderId}</span>
+                </div>
+                {data.order.destinationCity && (
+                  <div className="chip-col">
+                    <span className="chip-label">Destination</span>
+                    <span className="chip-val">{data.order.destinationCity} ({data.order.destinationZip})</span>
+                  </div>
+                )}
+                <div className="chip-col">
+                  <span className="chip-label">Order Date</span>
+                  <span className="chip-val">{data.order.date || 'Recent'}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Checkpoints Timeline */}
+            <div className="timeline-container">
+              <h3>Live Checkpoints & Delivery Logs</h3>
+
+              {data.tracking?.checkpoints && data.tracking.checkpoints.length > 0 ? (
+                <div className="timeline">
+                  {data.tracking.checkpoints.map((cp, idx) => (
+                    <div key={idx} className={`timeline-step ${idx === 0 ? 'current' : ''}`}>
+                      <div className="step-marker">
+                        <div className="outer-circle">
+                          <div className="inner-dot" />
+                        </div>
+                        {idx < data.tracking.checkpoints.length - 1 && <div className="step-line" />}
+                      </div>
+                      <div className="step-content">
+                        <p className="step-desc">{cp.description}</p>
+                        <div className="step-meta">
+                          <span className="step-time">{cp.time}</span>
+                          {cp.location && <span className="step-loc">• {cp.location}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-logs-msg">
+                  <p>Shipment is booked and confirmed with the courier partner. Checkpoints will appear shortly once scanned at the pickup hub.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="track-footer">
+          <Link href="/" className="back-link">
+            ← Return to Eternyx Boutique
+          </Link>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .track-page-container {
+          min-height: calc(100vh - 100px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 80px 20px;
+          background: #0a0a0a;
+          color: #fff;
+          font-family: var(--font-sans);
+        }
+
+        .track-card {
+          background: #111;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 6px;
+          padding: 48px;
+          width: 100%;
+          max-width: 680px;
+          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .track-header {
+          text-align: center;
+          margin-bottom: 36px;
+        }
+        .eyebrow {
+          display: block;
+          font-size: 0.68rem;
+          text-transform: uppercase;
+          letter-spacing: 0.2em;
+          color: #d4af37;
+          margin-bottom: 10px;
+        }
+        h1 {
+          font-family: var(--font-serif);
+          font-size: 2rem;
+          font-weight: 300;
+          color: #fff;
+          letter-spacing: 0.04em;
+          margin: 0 0 12px 0;
+        }
+        .subtitle {
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.88rem;
+          line-height: 1.6;
+          margin: 0 auto;
+          max-width: 480px;
+        }
+
+        .track-form {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 32px;
+        }
+        .input-wrap {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 4px;
+          padding: 12px 16px;
+          transition: border-color 0.2s;
+        }
+        .input-wrap:focus-within {
+          border-color: #d4af37;
+        }
+        .input-wrap svg {
+          color: rgba(255, 255, 255, 0.4);
+        }
+        .input-wrap input {
+          background: none;
+          border: none;
+          color: #fff;
+          font-size: 0.92rem;
+          outline: none;
+          width: 100%;
+        }
+        .track-btn {
+          background: #d4af37;
+          color: #000;
+          border: none;
+          padding: 0 24px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+          white-space: nowrap;
+        }
+        .track-btn:hover:not(:disabled) {
+          opacity: 0.88;
+        }
+        .track-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .track-error {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          color: #f87171;
+          padding: 14px 18px;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          text-align: center;
+          margin-bottom: 24px;
+        }
+
+        /* Results */
+        .track-result-section {
+          animation: fadeIn 0.3s ease;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          padding-top: 28px;
+        }
+
+        .status-banner {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 6px;
+          padding: 20px 24px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
+        }
+
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(34, 197, 94, 0.12);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          color: #4ade80;
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-size: 0.82rem;
+          font-weight: 500;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+        .live-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #22c55e;
+          animation: pulse 1.8s infinite;
+        }
+
+        .meta-pair {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+        .meta-label {
+          font-size: 0.65rem;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: rgba(255, 255, 255, 0.4);
+        }
+        .meta-val {
+          font-size: 0.9rem;
+          color: #fff;
+          font-weight: 500;
+        }
+        .font-mono {
+          font-family: monospace;
+          color: #d4af37;
+        }
+
+        .order-summary-chip {
+          display: flex;
+          gap: 20px;
+          background: rgba(212, 175, 55, 0.04);
+          border: 1px solid rgba(212, 175, 55, 0.15);
+          border-radius: 4px;
+          padding: 12px 20px;
+          margin-bottom: 28px;
+          flex-wrap: wrap;
+        }
+        .chip-col {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .chip-label {
+          font-size: 0.62rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: rgba(212, 175, 55, 0.7);
+        }
+        .chip-val {
+          font-size: 0.82rem;
+          color: #fff;
+        }
+
+        /* Timeline */
+        .timeline-container h3 {
+          font-size: 0.95rem;
+          font-weight: 400;
+          color: rgba(255, 255, 255, 0.9);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin: 0 0 24px 0;
+        }
+
+        .timeline {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+
+        .timeline-step {
+          display: flex;
+          gap: 20px;
+          position: relative;
+        }
+
+        .step-marker {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 24px;
+        }
+        .outer-circle {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #111;
+          z-index: 2;
+        }
+        .timeline-step.current .outer-circle {
+          border-color: #d4af37;
+          background: rgba(212, 175, 55, 0.15);
+        }
+        .inner-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.3);
+        }
+        .timeline-step.current .inner-dot {
+          background: #d4af37;
+        }
+        .step-line {
+          width: 2px;
+          flex: 1;
+          background: rgba(255, 255, 255, 0.08);
+          margin: 4px 0;
+          min-height: 44px;
+        }
+
+        .step-content {
+          padding-bottom: 24px;
+        }
+        .step-desc {
+          font-size: 0.9rem;
+          color: #fff;
+          margin: 0 0 4px 0;
+          line-height: 1.4;
+        }
+        .timeline-step.current .step-desc {
+          color: #d4af37;
+          font-weight: 500;
+        }
+        .step-meta {
+          font-size: 0.78rem;
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .no-logs-msg {
+          padding: 24px;
+          text-align: center;
+          color: rgba(255, 255, 255, 0.5);
+          font-size: 0.85rem;
+          background: rgba(255, 255, 255, 0.02);
+          border-radius: 4px;
+        }
+
+        .track-footer {
+          margin-top: 36px;
+          text-align: center;
+        }
+        .back-link {
+          color: rgba(255, 255, 255, 0.5);
+          text-decoration: none;
+          font-size: 0.82rem;
+          transition: color 0.2s;
+        }
+        .back-link:hover {
+          color: #d4af37;
+        }
+
+        @keyframes pulse {
+          0% { opacity: 0.4; transform: scale(0.9); }
+          50% { opacity: 1; transform: scale(1.2); }
+          100% { opacity: 0.4; transform: scale(0.9); }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+          .track-card {
+            padding: 24px;
+          }
+          .track-form {
+            flex-direction: column;
+          }
+          .track-btn {
+            padding: 12px;
+          }
+          .status-banner {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default function TrackPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '80px', textAlign: 'center', color: '#888' }}>Loading tracking...</div>}>
+      <TrackContent />
+    </Suspense>
+  );
+}

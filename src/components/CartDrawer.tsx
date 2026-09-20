@@ -62,6 +62,20 @@ export default function CartDrawer() {
     }
   }, [cartItems]);
 
+  // Auto-apply active promotional code when drawer opens
+  useEffect(() => {
+    if (isCartOpen && !appliedDiscount && cartItems.length > 0) {
+      fetch('/api/discounts/auto-apply')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.discount && data.discount.code) {
+            setAppliedDiscount(data.discount);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isCartOpen, appliedDiscount, cartItems.length]);
+
   // Close cart drawer on escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

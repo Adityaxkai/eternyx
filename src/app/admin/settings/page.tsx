@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { compressImage } from '@/lib/compressImage';
 import { PhilosophyConfig, DEFAULT_PHILOSOPHY, DEFAULT_CATEGORIES } from '@/lib/types';
 
-type Tab = 'General' | 'Branding' | 'Categories' | 'About Us' | 'Shipping' | 'Taxes' | 'Notifications' | 'Footer';
+type Tab = 'General' | 'Branding' | 'Categories' | 'About Us' | 'Shipping' | 'Taxes' | 'Notifications' | 'Footer' | 'Security';
 
 interface FooterLink {
   label: string;
@@ -191,7 +191,7 @@ export default function SettingsPage() {
   const [storeName, setStoreName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('INR');
   const [maintenance, setMaintenance] = useState(false);
 
   // ── Branding ──
@@ -200,16 +200,16 @@ export default function SettingsPage() {
   const [footerText, setFooterText] = useState('');
 
   // ── Shipping ──
-  const [freeShippingThreshold, setFreeShippingThreshold] = useState('250');
-  const [standardRate, setStandardRate] = useState('15');
-  const [expressRate, setExpressRate] = useState('35');
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState('999');
+  const [standardRate, setStandardRate] = useState('0');
+  const [expressRate, setExpressRate] = useState('99');
   const [shippingOrigin, setShippingOrigin] = useState('');
 
   // ── Taxes ──
   const [taxEnabled, setTaxEnabled] = useState(false);
   const [taxRate, setTaxRate] = useState('0');
-  const [taxLabel, setTaxLabel] = useState('VAT');
-  const [taxIncluded, setTaxIncluded] = useState(false);
+  const [taxLabel, setTaxLabel] = useState('GST');
+  const [taxIncluded, setTaxIncluded] = useState(true);
 
   // ── Notifications ──
   const [notifyNewOrder, setNotifyNewOrder] = useState(true);
@@ -230,13 +230,13 @@ export default function SettingsPage() {
         if (data) {
           setStoreName(data.storeName || 'Eternyx Luxury Fragrances');
           setEmail(data.email || 'support@eternyx.com');
-          setPhone(data.phone || '+1 (555) 123-4567');
-          setCurrency(data.currency || 'USD');
+          setPhone(data.phone || '+91 98765 43210');
+          setCurrency(data.currency || 'INR');
           setMaintenance(Boolean(data.maintenance));
           setPrimaryColor(data.primaryColor || '#d4af37');
           setTagline(data.tagline || 'The Art of Invisible Luxury');
-          setFooterText(data.footerText || '© 2025 Eternyx. All rights reserved.');
-          setFreeShippingThreshold(data.freeShippingThreshold || '250');
+          setFooterText(data.footerText || '© 2026 Eternyx. All rights reserved.');
+          setFreeShippingThreshold(data.freeShippingThreshold || '999');
           setStandardRate(data.standardRate || '15');
           setExpressRate(data.expressRate || '35');
           setShippingOrigin(data.shippingOrigin || 'Grasse, France');
@@ -315,7 +315,7 @@ export default function SettingsPage() {
             { label: 'Shipping Info', url: '/terms#shipping' }
           ];
 
-          setFooterDisclaimer(fc.disclaimer || 'ETERNYX fragrances are handcrafted in Grasse, France, using organically-sourced natural materials and pure botanical essences. Spontaneous scent dispersion and natural sediment are hallmarks of artisan quality. Free standard shipping applies to all orders above $250. Individual results and scent endurance may vary depending on ambient humidity and skin temperature.');
+          setFooterDisclaimer(fc.disclaimer || 'ETERNYX fragrances are handcrafted in Grasse, France, using organically-sourced natural materials and pure botanical essences. Spontaneous scent dispersion and natural sediment are hallmarks of artisan quality. Free standard shipping applies to all orders above ₹999. Individual results and scent endurance may vary depending on ambient humidity and skin temperature.');
           setFooterCopyright(fc.copyright || data.footerText || '© 2026 ETERNYX Luxury. All rights reserved.');
           
           if (fc.columns && fc.columns.length > 0) {
@@ -379,7 +379,69 @@ export default function SettingsPage() {
     }
   };
 
-  const TABS: Tab[] = ['General', 'Branding', 'Categories', 'About Us', 'Shipping', 'Taxes', 'Notifications', 'Footer'];
+  // ── Admin Security & Profile ──
+  const [adminUserId, setAdminUserId] = useState('admin');
+  const [adminEmail, setAdminEmail] = useState('admin@eternyx.com');
+  const [adminRecoveryKey, setAdminRecoveryKey] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+  const [secSaving, setSecSaving] = useState(false);
+  const [secMsg, setSecMsg] = useState('');
+  const [secError, setSecError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/admin/auth/change-credentials')
+      .then(res => res.json())
+      .then(data => {
+        if (data.userId) setAdminUserId(data.userId);
+        if (data.email) setAdminEmail(data.email);
+        if (data.recoveryKey) setAdminRecoveryKey(data.recoveryKey);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleUpdateSecurity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      setSecError('Current password is required to save changes.');
+      return;
+    }
+    if (newAdminPassword && newAdminPassword !== confirmAdminPassword) {
+      setSecError('New password and confirmation do not match.');
+      return;
+    }
+    setSecSaving(true);
+    setSecMsg('');
+    setSecError('');
+    try {
+      const res = await fetch('/api/admin/auth/change-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newUserId: adminUserId,
+          newEmail: adminEmail,
+          newPassword: newAdminPassword || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSecMsg('✓ Admin credentials updated successfully.');
+        setCurrentPassword('');
+        setNewAdminPassword('');
+        setConfirmAdminPassword('');
+      } else {
+        setSecError(data.error || 'Failed to update credentials.');
+      }
+    } catch (err) {
+      setSecError('Network error while updating credentials.');
+    } finally {
+      setSecSaving(false);
+    }
+  };
+
+  const TABS: Tab[] = ['General', 'Branding', 'Categories', 'About Us', 'Shipping', 'Taxes', 'Notifications', 'Footer', 'Security'];
 
   return (
     <div className="settings-container">
@@ -1012,6 +1074,111 @@ export default function SettingsPage() {
                 </section>
               </>
             )}
+
+            {/* ── SECURITY ── */}
+            {tab === 'Security' && (
+              <section className="settings-card">
+                <h2>Admin Security & Credentials</h2>
+                <p className="section-desc">Manage your Admin User ID, notification email, and security password.</p>
+
+                {secMsg && <div style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)', padding: '12px 16px', borderRadius: '4px', marginBottom: '20px', fontSize: '0.85rem' }}>{secMsg}</div>}
+                {secError && <div style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '12px 16px', borderRadius: '4px', marginBottom: '20px', fontSize: '0.85rem' }}>{secError}</div>}
+
+                <form onSubmit={handleUpdateSecurity}>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="set-admin-user">Admin User ID / Username</label>
+                      <input 
+                        id="set-admin-user" 
+                        type="text" 
+                        value={adminUserId} 
+                        onChange={e => setAdminUserId(e.target.value)} 
+                        placeholder="admin"
+                        required
+                      />
+                      <span className="field-hint">You can use this User ID to log into the Admin panel.</span>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="set-admin-email">Admin Login Email</label>
+                      <input 
+                        id="set-admin-email" 
+                        type="email" 
+                        value={adminEmail} 
+                        onChange={e => setAdminEmail(e.target.value)} 
+                        placeholder="admin@eternyx.com"
+                        required
+                      />
+                      <span className="field-hint">Email can also be used as login username.</span>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '10px', padding: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px' }}>
+                    <label style={{ color: '#d4af37' }}>Emergency Recovery Key</label>
+                    <input 
+                      type="text" 
+                      value={adminRecoveryKey || ''} 
+                      readOnly
+                      style={{ fontFamily: 'monospace', color: '#d4af37', background: 'rgba(0,0,0,0.3)', cursor: 'default' }}
+                    />
+                    <span className="field-hint">Use this key with the "Forgot Password" option on the login page if you ever forget your password.</span>
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', margin: '28px 0' }} />
+
+                  <h3 style={{ fontSize: '0.95rem', color: '#fff', marginBottom: '16px', fontWeight: 500 }}>Change Account Password</h3>
+
+                  <div className="form-group">
+                    <label htmlFor="set-cur-pass">Current Password *</label>
+                    <input 
+                      id="set-cur-pass" 
+                      type="password" 
+                      value={currentPassword} 
+                      onChange={e => setCurrentPassword(e.target.value)} 
+                      placeholder="Enter current password to authorize changes"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="set-new-pass">New Password (Leave blank to keep current)</label>
+                      <input 
+                        id="set-new-pass" 
+                        type="password" 
+                        value={newAdminPassword} 
+                        onChange={e => setNewAdminPassword(e.target.value)} 
+                        placeholder="New password (min 6 chars)"
+                        minLength={6}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="set-conf-pass">Confirm New Password</label>
+                      <input 
+                        id="set-conf-pass" 
+                        type="password" 
+                        value={confirmAdminPassword} 
+                        onChange={e => setConfirmAdminPassword(e.target.value)} 
+                        placeholder="Repeat new password"
+                        minLength={6}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '20px' }}>
+                    <button 
+                      type="submit" 
+                      className="admin-btn-primary" 
+                      disabled={secSaving}
+                      style={{ padding: '12px 24px' }}
+                    >
+                      {secSaving ? 'UPDATING CREDENTIALS…' : 'SAVE SECURITY CREDENTIALS'}
+                    </button>
+                  </div>
+                </form>
+              </section>
+            )}
           </div>
         </div>
       )}
@@ -1052,7 +1219,14 @@ export default function SettingsPage() {
           align-items: start;
         }
 
-        .settings-nav { display: flex; flex-direction: column; gap: 4px; }
+        .settings-nav {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
         .settings-nav-btn {
           background: none; border: none; text-align: left;
           padding: 10px 16px; color: rgba(255,255,255,0.5);
@@ -1062,7 +1236,13 @@ export default function SettingsPage() {
         .settings-nav-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
         .settings-nav-btn.active { color: #d4af37; background: rgba(212,175,55,0.08); font-weight: 500; }
 
-        .settings-content { display: flex; flex-direction: column; gap: 24px; max-width: 800px; }
+        .settings-content {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          max-width: 800px;
+          padding-bottom: 80px;
+        }
 
         .settings-card {
           background: #111;

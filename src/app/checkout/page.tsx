@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 
 interface DiscountType {
@@ -92,11 +93,27 @@ function CheckoutContent() {
     checkSession();
   }, []);
 
-  // Handle promo code from URL query parameter
+  // Handle promo code from URL query parameter or auto-apply available coupon
   useEffect(() => {
     const promoFromUrl = searchParams.get('promo');
     if (promoFromUrl) {
       applyPromoCode(promoFromUrl.toUpperCase());
+    } else {
+      // Auto-fetch and apply active promotional code
+      async function fetchAutoApplyPromo() {
+        try {
+          const res = await fetch('/api/discounts/auto-apply');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.discount && data.discount.code) {
+              setAppliedDiscount(data.discount);
+            }
+          }
+        } catch (err) {
+          console.error('Auto apply promo error:', err);
+        }
+      }
+      fetchAutoApplyPromo();
     }
   }, [searchParams]);
 
@@ -420,9 +437,29 @@ function CheckoutContent() {
             </div>
           )}
 
-          <button className="back-store-btn" onClick={() => router.push('/')}>
-            Continue Browsing
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '20px' }}>
+            <Link
+              href={`/order/${encodeURIComponent(createdOrderId)}`}
+              style={{
+                display: 'block',
+                background: '#d4af37',
+                color: '#000',
+                padding: '12px 24px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                textDecoration: 'none',
+                borderRadius: '2px',
+                transition: 'opacity 0.2s',
+              }}
+            >
+              View Order Details & Live Tracking →
+            </Link>
+            <button className="back-store-btn" onClick={() => router.push('/')}>
+              Continue Browsing
+            </button>
+          </div>
         </div>
 
         <style jsx>{`
@@ -773,7 +810,7 @@ function CheckoutContent() {
                 </div>
 
                 <button type="submit" className="action-btn checkout-pay" disabled={checkoutLoading || cartItems.length === 0}>
-                  {checkoutLoading ? 'Preparing Gateway...' : `Proceed to Payment — $${finalTotal.toLocaleString()}`}
+                  {checkoutLoading ? 'Preparing Gateway...' : `Proceed to Payment — ₹${finalTotal.toLocaleString()}`}
                 </button>
               </form>
             </div>

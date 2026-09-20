@@ -49,6 +49,22 @@ export const discountService = {
     }
   },
 
+  getAutoApplyDiscount: async (): Promise<Discount | null> => {
+    try {
+      const discounts = await query<any[]>('SELECT * FROM discounts WHERE active = 1 ORDER BY value DESC');
+      if (discounts.length === 0) return null;
+      const d = discounts[0];
+      return {
+        ...d,
+        value: Number(d.value),
+        active: Boolean(d.active),
+      };
+    } catch (e) {
+      console.error('Failed to get auto-apply discount:', e);
+      return null;
+    }
+  },
+
   create: async (data: Omit<Discount, 'id' | 'usage_count' | 'created_at'>): Promise<Discount | null> => {
     const id = `disc-${uuidv4().slice(0, 8)}`;
     const now = new Date().toISOString();

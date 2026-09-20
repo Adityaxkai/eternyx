@@ -36,6 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     {
       title: 'Operations',
       items: [
+        { href: '/admin/inventory', label: 'Inventory' },
         { href: '/admin/orders', label: 'Orders' },
         { href: '/admin/bookings', label: 'Bookings' },
         { href: '/admin/inquiries', label: 'Inquiries' },
@@ -121,7 +122,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <style jsx global>{`
         .admin-layout {
           display: flex;
-          min-height: 100vh;
+          height: 100vh;
+          max-height: 100vh;
+          overflow: hidden;
           background: #0a0a0a;
           color: rgba(255, 255, 255, 0.85);
           font-family: var(--font-sans);
@@ -130,12 +133,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         /* Sidebar */
         .admin-sidebar {
           width: 260px;
+          height: 100vh;
+          max-height: 100vh;
           background: #0d0d0d;
           border-right: 1px solid rgba(255, 255, 255, 0.04);
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
           z-index: 50;
+          overflow: hidden;
         }
 
         .sidebar-header {
@@ -245,11 +251,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           flex: 1;
           display: flex;
           flex-direction: column;
+          height: 100vh;
+          max-height: 100vh;
+          overflow: hidden;
           min-width: 0; /* Important for preventing overflow */
         }
 
         .admin-header {
           height: 70px;
+          flex-shrink: 0;
           border-bottom: 1px solid rgba(255, 255, 255, 0.04);
           display: flex;
           align-items: center;
@@ -288,6 +298,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           overflow-y: auto;
           overflow-x: hidden;
           -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
           overscroll-behavior: contain;
         }
 
