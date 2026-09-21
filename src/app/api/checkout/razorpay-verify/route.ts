@@ -65,6 +65,61 @@ export async function POST(request: Request) {
       await inventoryService.deductStock(order.items);
     }
 
+    // D. Automatically book courier shipment with iCarry Logistics
+    try {
+      const { icarryService } = await import('@/services/icarryService');
+      let phone = '9876543210';
+      if (order.customer_id) {
+        const customer = await customerService.getById(order.customer_id);
+        if (customer?.phone) phone = customer.phone;
+      } else if (order.customer_email) {
+        const customer = await customerService.getByEmail(order.customer_email);
+        if (customer?.phone) phone = customer.phone;
+      }
+
+      // Calculate weight based on ordered fragrances
+      let defaultWeight = 0;
+      order.items?.forEach((item: any) => {
+        const qty = item.quantity || 1;
+        const sizeLower = (item.size || '').toLowerCase();
+        if (sizeLower.includes('100ml') || sizeLower.includes('100 ml')) {
+          defaultWeight += 250 * qty;
+        } else if (sizeLower.includes('50ml') || sizeLower.includes('50 ml')) {
+          defaultWeight += 150 * qty;
+        } else {
+          defaultWeight += 200 * qty;
+        }
+      });
+
+      const recipient = {
+        name: order.customer_name || 'Customer',
+        email: order.customer_email || 'customer@example.com',
+        phone,
+        address: order.shipping_address?.street || '',
+        city: order.shipping_address?.city || '',
+        zip: order.shipping_address?.zip || '',
+      };
+
+      const bookingResult = await icarryService.bookShipment(
+        order.id,
+        recipient,
+        defaultWeight || 250,
+        'E' // Express courier
+      );
+
+      if (bookingResult.success && bookingResult.tracking_id) {
+        await orderService.updateShippingInfo(
+          order.id,
+          bookingResult.carrier,
+          bookingResult.tracking_id,
+          bookingResult.label_url,
+          bookingResult.cost
+        );
+      }
+    } catch (shipErr) {
+      console.error('[Auto-Booking iCarry Shipment Error]:', shipErr);
+    }
+
     return Response.json({ success: true, order_id: order.id });
   } catch (error) {
     console.error('Verify payment signature error:', error);
