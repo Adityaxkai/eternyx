@@ -58,7 +58,10 @@ export const icarryService = {
       const res = await fetch('https://www.icarry.in/api_login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, key: apiKey }),
+        body: JSON.stringify({
+          username,
+          key: apiKey,
+        }),
       });
 
       const data = await res.json();
