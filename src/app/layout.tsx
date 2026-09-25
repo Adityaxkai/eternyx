@@ -1,3 +1,4 @@
+cat > src/app/layout.tsx << 'EOF'
 import type { Metadata } from "next";
 import "./globals.css";
 import Script from "next/script";
