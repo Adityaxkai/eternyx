@@ -23,8 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-{/* Meta Pixel Code */}
+      <body>{/* Meta Pixel Code */}
         <Script
           id="meta-pixel"
           strategy="afterInteractive"
@@ -43,10 +42,6 @@ export default function RootLayout({
             `,
           }}
         />
-        
-        {children}
-        
-        {/* Fallback Pixel */}
         <noscript>
           <img
             height="1"
@@ -56,10 +51,7 @@ export default function RootLayout({
             alt=""
           />
         </noscript>
-      </body>
-    </html>
-  );
-}
+        {/* End Meta Pixel Code */}
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
         <StyledJsxRegistry>
           <CartProvider>
