@@ -7,7 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import CartDrawer from "@/components/CartDrawer";
 import FloatingCart from "@/components/FloatingCart";
 import StyledJsxRegistry from "./registry";
-
+import Script from "next/script";
 import StorefrontFooterWrapper from "@/components/StorefrontFooterWrapper";
 
 export const metadata: Metadata = {
