@@ -7,7 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import CartDrawer from "@/components/CartDrawer";
 import FloatingCart from "@/components/FloatingCart";
 import StyledJsxRegistry from "./registry";
-import Script from "next/script";
+
 import StorefrontFooterWrapper from "@/components/StorefrontFooterWrapper";
 
 export const metadata: Metadata = {
@@ -28,8 +28,7 @@ export default function RootLayout({
         <Script
           id="meta-pixel"
           strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
+          dangerouslySetInnerHTML={{__html: `
               !function(f,b,e,v,n,t,s)
               {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
               n.callMethod.apply(n,arguments):n.queue.push(arguments)};
