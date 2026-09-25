@@ -43,6 +43,10 @@ export default function RootLayout({
             `,
           }}
         />
+        
+        {children}
+        
+        {/* Fallback Pixel */}
         <noscript>
           <img
             height="1"
@@ -52,7 +56,10 @@ export default function RootLayout({
             alt=""
           />
         </noscript>
-        {/* End Meta Pixel Code */}
+      </body>
+    </html>
+  );
+}
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
         <StyledJsxRegistry>
           <CartProvider>
