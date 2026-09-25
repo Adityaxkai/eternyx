@@ -29,7 +29,7 @@ export default function RootLayout({
           id="meta-pixel"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{      
-            __html:`
+            __html: `
               !function(f,b,e,v,n,t,s)
               {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
               n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -39,7 +39,7 @@ export default function RootLayout({
               s.parentNode.insertBefore(t,s)}(window, document,'script',
               'https://connect.facebook.net/en_US/fbevents.js');
               fbq('init', '1050641627454023');
-              fbq('track', 'PageView');`}}
+              fbq('track', 'PageView');`
             `,
           }}
         />
