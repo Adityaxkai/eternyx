@@ -7,7 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import CartDrawer from "@/components/CartDrawer";
 import FloatingCart from "@/components/FloatingCart";
 import StyledJsxRegistry from "./registry";
-import Script from "next/script";
+
 import StorefrontFooterWrapper from "@/components/StorefrontFooterWrapper";
 
 export const metadata: Metadata = {
@@ -24,7 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {/* Meta Pixel Code */}
+      
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
+         {/* Meta Pixel Code */}
         <Script
           id="meta-pixel"
           strategy="afterInteractive"
@@ -54,12 +56,6 @@ export default function RootLayout({
         </noscript>
         {/* End Meta Pixel Code */}
 
-        {children}
-      </body>
-    </html>
-  )
-}
-        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
         <StyledJsxRegistry>
           <CartProvider>
             <Navbar />
